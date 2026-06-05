@@ -4,12 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { AppShell, Tab } from "@/components/AppShell";
 import {
-  addBook,
-  addSubject,
   createChallenge,
   dailyPlan,
   deleteBook,
-  deleteSubject,
+  getBookUrl,
   logQuiz,
   logSession,
   minutesToday,
@@ -17,6 +15,7 @@ import {
   setChallengeStatus,
   streakFor,
   updateSubject,
+  uploadBook,
   useCurrentProfile,
   useDB,
 } from "@/lib/store";
@@ -145,11 +144,11 @@ function PlanCard({
     }, 1000);
     (window as any).__planIntv = intv;
   };
-  const stopAndLog = () => {
+  const stopAndLog = async () => {
     clearInterval((window as any).__planIntv);
     setRunning(false);
     const min = Math.max(1, Math.round(elapsed / 60));
-    logSession(username, item.subjectId, min);
+    await logSession(username, item.subjectId, min);
     confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
   };
 
@@ -213,65 +212,15 @@ function EmptyState({ icon, title, desc }: { icon: string; title: string; desc: 
 }
 
 // ============== SUBJECTS ==============
-const COLORS = ["#f472b6", "#60a5fa", "#34d399", "#fbbf24", "#a78bfa", "#fb7185", "#22d3ee", "#facc15"];
-
 function SubjectsView() {
   const profile = useCurrentProfile()!;
   const db = useDB();
   const subjects = db.subjects.filter((s) => s.ownerUsername === profile.username);
-  const [name, setName] = useState("");
-  const [chapters, setChapters] = useState(10);
-  const [color, setColor] = useState(COLORS[0]);
-
-  const add = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    addSubject({ ownerUsername: profile.username, name: name.trim(), totalChapters: chapters, color });
-    setName("");
-    setChapters(10);
-  };
 
   return (
     <div className="space-y-6">
-      <form onSubmit={add} className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">
-        <h3 className="font-bold mb-3">إضافة مادة جديدة</h3>
-        <div className="grid md:grid-cols-[1fr_120px_auto] gap-3">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="اسم المادة (مثل: رياضيات)"
-            className="bg-input rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary"
-          />
-          <input
-            type="number"
-            min={1}
-            value={chapters}
-            onChange={(e) => setChapters(parseInt(e.target.value) || 1)}
-            className="bg-input rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary text-center"
-            placeholder="فصول"
-          />
-          <button className="bg-hero text-primary-foreground font-bold px-5 rounded-2xl shadow-glow">
-            إضافة
-          </button>
-        </div>
-        <div className="flex gap-2 mt-3 flex-wrap">
-          {COLORS.map((c) => (
-            <button
-              type="button"
-              key={c}
-              onClick={() => setColor(c)}
-              className={`w-8 h-8 rounded-full border-2 transition ${
-                color === c ? "border-foreground scale-110" : "border-transparent"
-              }`}
-              style={{ background: c }}
-              aria-label="لون"
-            />
-          ))}
-        </div>
-      </form>
-
       {subjects.length === 0 ? (
-        <EmptyState icon="📘" title="لا توجد مواد بعد" desc="أضف مواد ثانويتك للبدء." />
+        <EmptyState icon="📘" title="لا توجد مواد بعد" desc="تواصل مع وليّ الأمر لإضافة موادك." />
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {subjects.map((s) => {
@@ -283,10 +232,7 @@ function SubjectsView() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span
-                      className="w-3 h-10 rounded-full"
-                      style={{ background: s.color }}
-                    />
+                    <span className="w-3 h-10 rounded-full" style={{ background: s.color }} />
                     <div>
                       <h4 className="font-bold text-lg">{s.name}</h4>
                       <p className="text-xs text-muted-foreground">
@@ -294,12 +240,16 @@ function SubjectsView() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => deleteSubject(s.id)}
-                    className="text-xs text-destructive hover:underline"
-                  >
-                    حذف
-                  </button>
+                  {s.bookPath && (
+                    <a
+                      href={getBookUrl(s.bookPath)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-hero text-primary-foreground font-bold px-3 py-1.5 rounded-xl shadow-glow"
+                    >
+                      📄 الكتاب
+                    </a>
+                  )}
                 </div>
                 <div className="h-2 bg-muted rounded-full mt-3 overflow-hidden">
                   <div
@@ -310,7 +260,7 @@ function SubjectsView() {
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() =>
-                      updateSubject(s.id, {
+                      void updateSubject(s.id, {
                         doneChapters: Math.min(s.totalChapters, s.doneChapters + 1),
                       })
                     }
@@ -320,7 +270,7 @@ function SubjectsView() {
                   </button>
                   <button
                     onClick={() =>
-                      updateSubject(s.id, { doneChapters: Math.max(0, s.doneChapters - 1) })
+                      void updateSubject(s.id, { doneChapters: Math.max(0, s.doneChapters - 1) })
                     }
                     className="flex-1 glass rounded-2xl py-2 text-sm font-semibold"
                   >
@@ -356,7 +306,7 @@ function QuizView() {
     setDone(false);
   };
 
-  const choose = (i: number) => {
+  const choose = async (i: number) => {
     if (!qs) return;
     const next = [...answers, i];
     setAnswers(next);
@@ -364,7 +314,7 @@ function QuizView() {
       setIdx(idx + 1);
     } else {
       const score = next.reduce((a, ans, j) => a + (ans === qs[j].correct ? 1 : 0), 0);
-      logQuiz(profile.username, subjectId, score, qs.length);
+      await logQuiz(profile.username, subjectId, score, qs.length);
       setDone(true);
       if (score / qs.length >= 0.6) {
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
@@ -478,19 +428,24 @@ function BooksView() {
   const books = db.books.filter((b) => b.ownerUsername === profile.username);
   const [subjectId, setSubjectId] = useState("");
   const [title, setTitle] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (!f || !subjectId) return;
-    addBook({
-      ownerUsername: profile.username,
-      subjectId,
-      title: title || f.name.replace(/\.pdf$/i, ""),
-      fileName: f.name,
-      sizeKB: Math.round(f.size / 1024),
-    });
-    setTitle("");
-    e.target.value = "";
+    if (!f) return;
+    if (!subjectId) { setUploadError("اختر المادة أولاً"); return; }
+    setUploadError("");
+    setUploading(true);
+    try {
+      await uploadBook(f, profile.username, subjectId, title);
+      setTitle("");
+      e.target.value = "";
+    } catch (err) {
+      setUploadError((err as Error).message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (subjects.length === 0)
@@ -519,14 +474,14 @@ function BooksView() {
             placeholder="عنوان الكتاب (اختياري)"
             className="bg-input rounded-2xl px-4 py-3 outline-none"
           />
-          <label className="bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow text-center cursor-pointer">
-            اختر ملف PDF
-            <input type="file" accept="application/pdf" onChange={onFile} className="hidden" />
+          <label className={`bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow text-center cursor-pointer ${uploading ? "opacity-60 cursor-not-allowed" : ""}`}>
+            {uploading ? "جارٍ الرفع..." : "اختر ملف PDF"}
+            <input type="file" accept="application/pdf" onChange={onFile} className="hidden" disabled={uploading} />
           </label>
         </div>
+        {uploadError && <p className="text-destructive text-xs mt-2">{uploadError}</p>}
         <p className="text-xs text-muted-foreground mt-3">
-          ملاحظة: في هذه النسخة يتم حفظ اسم الكتاب وحجمه فقط للمتابعة. عند تفعيل التخزين السحابي
-          سيتم حفظ الملف كاملاً للاستعراض من أي جهاز.
+          الملفات ترفع مباشرة إلى التخزين السحابي وتبقى محفوظة من أي جهاز.
         </p>
       </div>
 
@@ -546,12 +501,24 @@ function BooksView() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {subj?.name} • {(b.sizeKB / 1024).toFixed(1)} ميجا
                 </p>
-                <button
-                  onClick={() => deleteBook(b.id)}
-                  className="text-xs text-destructive mt-3 hover:underline"
-                >
-                  حذف
-                </button>
+                <div className="flex gap-3 mt-3">
+                  {b.filePath && (
+                    <a
+                      href={getBookUrl(b.filePath)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline"
+                    >
+                      فتح الكتاب
+                    </a>
+                  )}
+                  <button
+                    onClick={() => void deleteBook(b.id)}
+                    className="text-xs text-destructive hover:underline"
+                  >
+                    حذف
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -623,10 +590,10 @@ function ChallengesView() {
     (c) => c.from === profile.username || c.to === profile.username,
   );
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!to || !title.trim()) return;
-    createChallenge({ from: profile.username, to, title: title.trim() });
+    await createChallenge({ from: profile.username, to, title: title.trim() });
     setTitle("");
     setTo("");
   };
@@ -709,7 +676,7 @@ function ChallengesView() {
                     <div className="flex gap-2">
                       {isMyTurn && (
                         <button
-                          onClick={() => setChallengeStatus(c.id, "accepted")}
+                          onClick={() => void setChallengeStatus(c.id, "accepted")}
                           className="text-xs bg-secondary text-secondary-foreground font-bold px-3 py-1.5 rounded-xl"
                         >
                           قبول
@@ -718,13 +685,13 @@ function ChallengesView() {
                       {c.status === "accepted" && (
                         <>
                           <button
-                            onClick={() => setChallengeStatus(c.id, "done", c.from)}
+                            onClick={() => void setChallengeStatus(c.id, "done", c.from)}
                             className="text-xs glass px-3 py-1.5 rounded-xl"
                           >
                             فاز {from?.displayName}
                           </button>
                           <button
-                            onClick={() => setChallengeStatus(c.id, "done", c.to)}
+                            onClick={() => void setChallengeStatus(c.id, "done", c.to)}
                             className="text-xs glass px-3 py-1.5 rounded-xl"
                           >
                             فاز {toP?.displayName}

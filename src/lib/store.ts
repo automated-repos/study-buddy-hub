@@ -1,13 +1,16 @@
-// Local storage data layer. Username-only "auth". Family-scoped.
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "./supabase";
+import { queryClient } from "./queryClient";
 
+// ============== Types ==============
 export type Role = "student" | "supervisor";
 
 export interface Profile {
   username: string;
   displayName: string;
   role: Role;
-  avatar: string; // emoji
+  avatar: string;
   createdAt: number;
 }
 
@@ -17,8 +20,9 @@ export interface Subject {
   name: string;
   totalChapters: number;
   doneChapters: number;
-  color: string; // hex
-  targetExamDate?: string; // YYYY-MM-DD
+  color: string;
+  targetExamDate?: string;
+  bookPath?: string;
 }
 
 export interface Book {
@@ -27,6 +31,7 @@ export interface Book {
   subjectId: string;
   title: string;
   fileName: string;
+  filePath?: string;
   sizeKB: number;
   addedAt: number;
 }
@@ -36,7 +41,7 @@ export interface StudySession {
   ownerUsername: string;
   subjectId: string;
   minutes: number;
-  date: string; // YYYY-MM-DD
+  date: string;
   note?: string;
 }
 
@@ -70,49 +75,158 @@ interface DB {
   currentUsername: string | null;
 }
 
-const KEY = "mozakara_db_v1";
-const initial: DB = {
+const initial: Omit<DB, "currentUsername"> = {
   profiles: [],
   subjects: [],
   books: [],
   sessions: [],
   quizzes: [],
   challenges: [],
-  currentUsername: null,
 };
 
-const listeners = new Set<() => void>();
+// ============== Session (localStorage — only the username string) ==============
+const SESSION_KEY = "mozakara_user_v2";
 
-function read(): DB {
-  if (typeof window === "undefined") return initial;
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return initial;
-    return { ...initial, ...JSON.parse(raw) };
-  } catch {
-    return initial;
-  }
-}
-function write(db: DB) {
-  localStorage.setItem(KEY, JSON.stringify(db));
-  listeners.forEach((l) => l());
+export function getCurrentUsername(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(SESSION_KEY);
 }
 
-export function getDB() {
-  return read();
-}
-export function update(mut: (db: DB) => void) {
-  const db = read();
-  mut(db);
-  write(db);
-}
-export function subscribe(l: () => void) {
-  listeners.add(l);
-  return () => listeners.delete(l);
+function setCurrentUsername(u: string | null) {
+  if (u) localStorage.setItem(SESSION_KEY, u);
+  else localStorage.removeItem(SESSION_KEY);
 }
 
+// ============== Row mappers (DB snake_case → TS camelCase) ==============
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapProfile(r: any): Profile {
+  return {
+    username: r.username,
+    displayName: r.display_name,
+    role: r.role as Role,
+    avatar: r.avatar,
+    createdAt: r.created_at,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapSubject(r: any): Subject {
+  return {
+    id: r.id,
+    ownerUsername: r.owner_username,
+    name: r.name,
+    totalChapters: r.total_chapters,
+    doneChapters: r.done_chapters,
+    color: r.color,
+    targetExamDate: r.target_exam_date ?? undefined,
+    bookPath: r.book_path ?? undefined,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapBook(r: any): Book {
+  return {
+    id: r.id,
+    ownerUsername: r.owner_username,
+    subjectId: r.subject_id,
+    title: r.title,
+    fileName: r.file_name,
+    filePath: r.file_path ?? undefined,
+    sizeKB: r.size_kb,
+    addedAt: r.added_at,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapSession(r: any): StudySession {
+  return {
+    id: r.id,
+    ownerUsername: r.owner_username,
+    subjectId: r.subject_id,
+    minutes: r.minutes,
+    date: r.date,
+    note: r.note ?? undefined,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapQuiz(r: any): QuizResult {
+  return {
+    id: r.id,
+    ownerUsername: r.owner_username,
+    subjectId: r.subject_id,
+    score: r.score,
+    total: r.total,
+    takenAt: r.taken_at,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapChallenge(r: any): Challenge {
+  return {
+    id: r.id,
+    from: r.from_username,
+    to: r.to_username,
+    subjectId: r.subject_id ?? undefined,
+    title: r.title,
+    status: r.status as Challenge["status"],
+    createdAt: r.created_at,
+    winner: r.winner ?? undefined,
+  };
+}
+
+// ============== Data fetching ==============
+export const DB_QUERY_KEY = ["db"] as const;
+
+async function fetchAll() {
+  const [profiles, subjects, books, sessions, quizzes, challenges] = await Promise.all([
+    supabase.from("profiles").select("*"),
+    supabase.from("subjects").select("*"),
+    supabase.from("books").select("*"),
+    supabase.from("study_sessions").select("*"),
+    supabase.from("quiz_results").select("*"),
+    supabase.from("challenges").select("*"),
+  ]);
+  return {
+    profiles: (profiles.data ?? []).map(mapProfile),
+    subjects: (subjects.data ?? []).map(mapSubject),
+    books: (books.data ?? []).map(mapBook),
+    sessions: (sessions.data ?? []).map(mapSession),
+    quizzes: (quizzes.data ?? []).map(mapQuiz),
+    challenges: (challenges.data ?? []).map(mapChallenge),
+  };
+}
+
+async function invalidate() {
+  await queryClient.invalidateQueries({ queryKey: DB_QUERY_KEY });
+}
+
+// ============== Hooks ==============
 export function useDB(): DB {
-  return useSyncExternalStore(subscribe, read, () => initial);
+  const currentUsername = getCurrentUsername();
+  const { data } = useQuery({
+    queryKey: DB_QUERY_KEY,
+    queryFn: fetchAll,
+  });
+  return { ...(data ?? initial), currentUsername };
+}
+
+export function useCurrentProfile(): Profile | null {
+  const db = useDB();
+  return db.currentUsername
+    ? (db.profiles.find((p) => p.username === db.currentUsername) ?? null)
+    : null;
+}
+
+// Kept for compatibility — always null (use useCurrentProfile hook instead)
+export function currentProfile(): Profile | null {
+  return null;
+}
+
+export function useMounted() {
+  const [m, setM] = useState(false);
+  useEffect(() => setM(true), []);
+  return m;
 }
 
 export function uid() {
@@ -120,99 +234,231 @@ export function uid() {
 }
 
 // ============== Auth ==============
-export function loginOrCreate(username: string, role: Role, displayName?: string, avatar = "🦄") {
+export async function loginOrCreate(
+  username: string,
+  role: Role,
+  displayName?: string,
+  avatar = "🦄",
+) {
   const u = username.trim().toLowerCase();
   if (!u) throw new Error("اسم المستخدم مطلوب");
-  update((db) => {
-    const existing = db.profiles.find((p) => p.username === u);
-    if (!existing) {
-      db.profiles.push({
-        username: u,
-        displayName: displayName?.trim() || username.trim(),
-        role,
-        avatar,
-        createdAt: Date.now(),
-      });
-    }
-    db.currentUsername = u;
-  });
+
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("username", u)
+    .maybeSingle();
+
+  if (!existing) {
+    const { error } = await supabase.from("profiles").insert({
+      username: u,
+      display_name: displayName?.trim() || username.trim(),
+      role,
+      avatar,
+      created_at: Date.now(),
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  setCurrentUsername(u);
+  await invalidate();
 }
+
 export function logout() {
-  update((db) => {
-    db.currentUsername = null;
-  });
+  setCurrentUsername(null);
+  queryClient.removeQueries({ queryKey: DB_QUERY_KEY });
 }
-export function currentProfile(): Profile | null {
-  const db = read();
-  if (!db.currentUsername) return null;
-  return db.profiles.find((p) => p.username === db.currentUsername) ?? null;
-}
-export function useCurrentProfile() {
-  const db = useDB();
-  return db.currentUsername
-    ? db.profiles.find((p) => p.username === db.currentUsername) ?? null
-    : null;
+
+export async function updateAvatar(username: string, avatar: string) {
+  const { error } = await supabase.from("profiles").update({ avatar }).eq("username", username);
+  if (error) throw new Error(error.message);
+  await invalidate();
 }
 
 // ============== Subjects ==============
-export function addSubject(input: Omit<Subject, "id" | "doneChapters">) {
-  update((db) => {
-    db.subjects.push({ ...input, id: uid(), doneChapters: 0 });
+export async function addSubject(input: Omit<Subject, "id" | "doneChapters">) {
+  const { error } = await supabase.from("subjects").insert({
+    id: uid(),
+    owner_username: input.ownerUsername,
+    name: input.name,
+    total_chapters: input.totalChapters,
+    done_chapters: 0,
+    color: input.color,
+    target_exam_date: input.targetExamDate ?? null,
+    book_path: input.bookPath ?? null,
   });
+  if (error) throw new Error(error.message);
+  await invalidate();
 }
-export function updateSubject(id: string, patch: Partial<Subject>) {
-  update((db) => {
-    const s = db.subjects.find((x) => x.id === id);
-    if (s) Object.assign(s, patch);
-  });
+
+export async function uploadSubjectBook(file: File, subjectName: string): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "pdf";
+  const path = `subjects/${subjectName.replace(/\s+/g, "_")}/${uid()}.${ext}`;
+  const { error } = await supabase.storage.from("books").upload(path, file, { upsert: true });
+  if (error) throw new Error(error.message);
+  return path;
 }
-export function deleteSubject(id: string) {
-  update((db) => {
-    db.subjects = db.subjects.filter((s) => s.id !== id);
-    db.books = db.books.filter((b) => b.subjectId !== id);
-    db.sessions = db.sessions.filter((s) => s.subjectId !== id);
-    db.quizzes = db.quizzes.filter((q) => q.subjectId !== id);
-  });
+
+export async function setSubjectBook(subjectName: string, bookPath: string) {
+  const { error } = await supabase
+    .from("subjects")
+    .update({ book_path: bookPath })
+    .eq("name", subjectName);
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+export async function updateSubject(id: string, patch: Partial<Subject>) {
+  const dbPatch: Record<string, unknown> = {};
+  if (patch.name !== undefined) dbPatch.name = patch.name;
+  if (patch.totalChapters !== undefined) dbPatch.total_chapters = patch.totalChapters;
+  if (patch.doneChapters !== undefined) dbPatch.done_chapters = patch.doneChapters;
+  if (patch.color !== undefined) dbPatch.color = patch.color;
+  if (patch.targetExamDate !== undefined) dbPatch.target_exam_date = patch.targetExamDate;
+
+  const { error } = await supabase.from("subjects").update(dbPatch).eq("id", id);
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+export async function deleteSubject(id: string) {
+  const { error } = await supabase.from("subjects").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  await invalidate();
 }
 
 // ============== Sessions ==============
-export function logSession(ownerUsername: string, subjectId: string, minutes: number, note?: string) {
+export async function logSession(
+  ownerUsername: string,
+  subjectId: string,
+  minutes: number,
+  note?: string,
+) {
   const date = new Date().toISOString().slice(0, 10);
-  update((db) => {
-    db.sessions.push({ id: uid(), ownerUsername, subjectId, minutes, date, note });
-    const subj = db.subjects.find((s) => s.id === subjectId);
-    // auto-increment chapter progress every 45 minutes (rough heuristic)
-    if (subj && minutes >= 25) subj.doneChapters = Math.min(subj.totalChapters, subj.doneChapters + 1);
+  const { error } = await supabase.from("study_sessions").insert({
+    id: uid(),
+    owner_username: ownerUsername,
+    subject_id: subjectId,
+    minutes,
+    date,
+    note: note ?? null,
   });
+  if (error) throw new Error(error.message);
+
+  // Auto-increment chapter progress every 25+ minutes
+  if (minutes >= 25) {
+    const { data: subj } = await supabase
+      .from("subjects")
+      .select("total_chapters, done_chapters")
+      .eq("id", subjectId)
+      .single();
+    if (subj) {
+      await supabase
+        .from("subjects")
+        .update({ done_chapters: Math.min(subj.total_chapters, subj.done_chapters + 1) })
+        .eq("id", subjectId);
+    }
+  }
+
+  await invalidate();
 }
 
 // ============== Quizzes ==============
-export function logQuiz(ownerUsername: string, subjectId: string, score: number, total: number) {
-  update((db) => {
-    db.quizzes.push({ id: uid(), ownerUsername, subjectId, score, total, takenAt: Date.now() });
+export async function logQuiz(
+  ownerUsername: string,
+  subjectId: string,
+  score: number,
+  total: number,
+) {
+  const { error } = await supabase.from("quiz_results").insert({
+    id: uid(),
+    owner_username: ownerUsername,
+    subject_id: subjectId,
+    score,
+    total,
+    taken_at: Date.now(),
   });
+  if (error) throw new Error(error.message);
+  await invalidate();
 }
 
 // ============== Books ==============
-export function addBook(b: Omit<Book, "id" | "addedAt">) {
-  update((db) => db.books.push({ ...b, id: uid(), addedAt: Date.now() }));
+export async function addBook(b: Omit<Book, "id" | "addedAt">) {
+  const { error } = await supabase.from("books").insert({
+    id: uid(),
+    owner_username: b.ownerUsername,
+    subject_id: b.subjectId,
+    title: b.title,
+    file_name: b.fileName,
+    file_path: b.filePath ?? null,
+    size_kb: b.sizeKB,
+    added_at: Date.now(),
+  });
+  if (error) throw new Error(error.message);
+  await invalidate();
 }
-export function deleteBook(id: string) {
-  update((db) => {
-    db.books = db.books.filter((b) => b.id !== id);
+
+export async function deleteBook(id: string) {
+  const { data: book } = await supabase
+    .from("books")
+    .select("file_path")
+    .eq("id", id)
+    .single();
+
+  if (book?.file_path) {
+    await supabase.storage.from("books").remove([book.file_path]);
+  }
+
+  const { error } = await supabase.from("books").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+export async function uploadBook(
+  file: File,
+  ownerUsername: string,
+  subjectId: string,
+  title: string,
+) {
+  const ext = file.name.split(".").pop() ?? "pdf";
+  const path = `${ownerUsername}/${subjectId}/${uid()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("books")
+    .upload(path, file, { upsert: false });
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  await addBook({
+    ownerUsername,
+    subjectId,
+    title: title || file.name.replace(/\.pdf$/i, ""),
+    fileName: file.name,
+    filePath: path,
+    sizeKB: Math.round(file.size / 1024),
   });
 }
 
+export function getBookUrl(filePath: string): string {
+  const { data } = supabase.storage.from("books").getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
 // ============== Points & Stats ==============
-export function pointsFor(username: string, db = read()) {
-  const min = db.sessions.filter((s) => s.ownerUsername === username).reduce((a, b) => a + b.minutes, 0);
+export function pointsFor(username: string, db: Pick<DB, "sessions" | "quizzes">) {
+  const min = db.sessions
+    .filter((s) => s.ownerUsername === username)
+    .reduce((a, b) => a + b.minutes, 0);
   const quizPts = db.quizzes
     .filter((q) => q.ownerUsername === username)
     .reduce((a, q) => a + Math.round((q.score / Math.max(q.total, 1)) * 50), 0);
   return Math.round(min) + quizPts;
 }
-export function streakFor(username: string, db = read()) {
-  const dates = new Set(db.sessions.filter((s) => s.ownerUsername === username).map((s) => s.date));
+
+export function streakFor(username: string, db: Pick<DB, "sessions">) {
+  const dates = new Set(
+    db.sessions.filter((s) => s.ownerUsername === username).map((s) => s.date),
+  );
   let streak = 0;
   const d = new Date();
   for (;;) {
@@ -224,7 +470,8 @@ export function streakFor(username: string, db = read()) {
   }
   return streak;
 }
-export function minutesToday(username: string, db = read()) {
+
+export function minutesToday(username: string, db: Pick<DB, "sessions">) {
   const today = new Date().toISOString().slice(0, 10);
   return db.sessions
     .filter((s) => s.ownerUsername === username && s.date === today)
@@ -232,29 +479,34 @@ export function minutesToday(username: string, db = read()) {
 }
 
 // ============== Challenges ==============
-export function createChallenge(c: Omit<Challenge, "id" | "createdAt" | "status">) {
-  update((db) =>
-    db.challenges.push({ ...c, id: uid(), createdAt: Date.now(), status: "pending" }),
-  );
-}
-export function setChallengeStatus(id: string, status: Challenge["status"], winner?: string) {
-  update((db) => {
-    const c = db.challenges.find((x) => x.id === id);
-    if (c) {
-      c.status = status;
-      if (winner) c.winner = winner;
-    }
+export async function createChallenge(c: Omit<Challenge, "id" | "createdAt" | "status">) {
+  const { error } = await supabase.from("challenges").insert({
+    id: uid(),
+    from_username: c.from,
+    to_username: c.to,
+    subject_id: c.subjectId ?? null,
+    title: c.title,
+    status: "pending",
+    created_at: Date.now(),
   });
+  if (error) throw new Error(error.message);
+  await invalidate();
 }
 
-// SSR-safe mount hook
-export function useMounted() {
-  const [m, setM] = useState(false);
-  useEffect(() => setM(true), []);
-  return m;
+export async function setChallengeStatus(
+  id: string,
+  status: Challenge["status"],
+  winner?: string,
+) {
+  const { error } = await supabase
+    .from("challenges")
+    .update({ status, ...(winner ? { winner } : {}) })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  await invalidate();
 }
 
-// ============== Auto-generated daily plan ==============
+// ============== Daily Plan ==============
 export interface PlanItem {
   subjectId: string;
   subjectName: string;
@@ -262,6 +514,7 @@ export interface PlanItem {
   minutes: number;
   focus: string;
 }
+
 const FOCUS_TIPS = [
   "راجع آخر فصل + حل 5 أسئلة",
   "ابدأ فصل جديد واكتب ملخص في 6 أسطر",
@@ -270,22 +523,22 @@ const FOCUS_TIPS = [
   "ركّز على الأمثلة المحلولة",
   "خرائط ذهنية للمفاهيم الأساسية",
 ];
-export function dailyPlan(username: string, db = read()): PlanItem[] {
+
+export function dailyPlan(username: string, db: Pick<DB, "subjects">): PlanItem[] {
   const subs = db.subjects.filter((s) => s.ownerUsername === username);
   if (subs.length === 0) return [];
-  // weight by remaining chapters; minimum 20 min/subject; cap 4 items/day
   const weighted = subs
     .map((s) => ({ s, remaining: Math.max(1, s.totalChapters - s.doneChapters) }))
     .sort((a, b) => b.remaining - a.remaining)
     .slice(0, 4);
   const totalW = weighted.reduce((a, b) => a + b.remaining, 0);
-  const dayBudget = 150; // 2.5h target
+  const dayBudget = 150;
   const seed = new Date().toISOString().slice(0, 10).split("-").join("");
   return weighted.map((w, i) => ({
     subjectId: w.s.id,
     subjectName: w.s.name,
     color: w.s.color,
-    minutes: Math.max(25, Math.round((w.remaining / totalW) * dayBudget / 5) * 5),
+    minutes: Math.max(25, Math.round(((w.remaining / totalW) * dayBudget) / 5) * 5),
     focus: FOCUS_TIPS[(parseInt(seed, 10) + i) % FOCUS_TIPS.length],
   }));
 }
