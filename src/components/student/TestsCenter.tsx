@@ -5,10 +5,12 @@ import { finishedLessons, isFinished, lessonSequence, type LessonRef } from "@/l
 import { logReview, useCurrentProfile, useDB, type DB } from "@/lib/store";
 import { QuizRunner } from "./QuizRunner";
 import { MapQuiz } from "./MapQuiz";
+import { Mistakes } from "@/components/Mistakes";
 
-type Mode = "quick" | "comprehensive" | "biweekly" | "essay" | "maps";
+type Mode = "quick" | "comprehensive" | "biweekly" | "essay" | "maps" | "mistakes";
 
 export function TestsCenter({ quick }: { quick: ReactNode }) {
+  const me = useCurrentProfile()?.username ?? "";
   const [mode, setMode] = useState<Mode>("quick");
   return (
     <div className="space-y-5">
@@ -20,6 +22,7 @@ export function TestsCenter({ quick }: { quick: ReactNode }) {
             ["biweekly", "🔁 مراجعة كل أسبوعين"],
             ["essay", "✍️ أسئلة مقالية"],
             ["maps", "🗺️ أسئلة الخرائط"],
+            ["mistakes", "📕 أخطائي"],
           ] as [Mode, string][]
         ).map(([k, l]) => (
           <button
@@ -36,6 +39,7 @@ export function TestsCenter({ quick }: { quick: ReactNode }) {
       {mode === "biweekly" && <Biweekly />}
       {mode === "essay" && <EssayPractice />}
       {mode === "maps" && <MapQuiz />}
+      {mode === "mistakes" && <Mistakes username={me} />}
     </div>
   );
 }
@@ -90,6 +94,7 @@ function Comprehensive() {
       <QuizRunner
         questions={qs}
         title="اختبار شامل"
+        logAs="comprehensive"
         secondsPerQuestion={timed ? 60 : undefined}
         onFinish={(score, total) =>
           void logReview(
@@ -190,6 +195,7 @@ function Biweekly() {
       <QuizRunner
         questions={qs}
         title="المراجعة الشاملة"
+        logAs="biweekly"
         secondsPerQuestion={60}
         onFinish={(score, total) =>
           void logReview(profile.username, "biweekly", null, score, total).catch(() => {})

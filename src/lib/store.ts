@@ -96,6 +96,31 @@ export interface ReviewResult {
   takenAt: number;
 }
 
+export interface BattleRound {
+  q: string;
+  options: string[];
+  correct: number;
+  lesson: string;
+  /** who buzzed first and answered */
+  who: string;
+  chosen: number;
+  ok: boolean;
+}
+
+export interface BattleResult {
+  battleId: string;
+  supervisor: string | null;
+  p1: string;
+  p2: string;
+  p1Score: number;
+  p2Score: number;
+  winner: string | null;
+  subject: string;
+  scope: string | null;
+  rounds: BattleRound[];
+  finishedAt: number;
+}
+
 export interface CustomSummaryRow {
   id: string;
   subject: string;
@@ -122,6 +147,7 @@ export interface DB {
   tasks: StudyTask[];
   reviews: ReviewResult[];
   customSummaries: CustomSummaryRow[];
+  battleResults: BattleResult[];
   currentUsername: string | null;
   /** false until the first fetch from Supabase finishes */
   loaded: boolean;
@@ -139,6 +165,7 @@ const initial: Omit<DB, "currentUsername" | "loaded"> = {
   tasks: [],
   reviews: [],
   customSummaries: [],
+  battleResults: [],
 };
 
 // ============== Session (localStorage — only the username string) ==============
@@ -236,7 +263,7 @@ function mapChallenge(r: any): Challenge {
 export const DB_QUERY_KEY = ["db"] as const;
 
 async function fetchAll() {
-  const [profiles, subjects, books, sessions, quizzes, challenges, progress, customQs, tasks, reviews, customSums] = await Promise.all([
+  const [profiles, subjects, books, sessions, quizzes, challenges, progress, customQs, tasks, reviews, customSums, battleRes] = await Promise.all([
     supabase.from("profiles").select("*"),
     supabase.from("subjects").select("*"),
     supabase.from("books").select("*"),
@@ -248,6 +275,7 @@ async function fetchAll() {
     supabase.from("study_tasks").select("*"),
     supabase.from("reviews").select("*"),
     supabase.from("custom_summaries").select("*"),
+    supabase.from("battle_results").select("*").order("finished_at", { ascending: false }).limit(500),
   ]);
   // empty if the custom_questions migration hasn't been applied yet
   const questionEdits: QuestionEdit[] = (customQs.data ?? []).map((r) => ({
@@ -283,6 +311,19 @@ async function fetchAll() {
       score: r.score,
       total: r.total,
       takenAt: r.taken_at,
+    })),
+    battleResults: (battleRes.data ?? []).map((r) => ({
+      battleId: r.battle_id,
+      supervisor: r.supervisor,
+      p1: r.p1,
+      p2: r.p2,
+      p1Score: r.p1_score,
+      p2Score: r.p2_score,
+      winner: r.winner,
+      subject: r.subject,
+      scope: r.scope,
+      rounds: Array.isArray(r.rounds) ? (r.rounds as unknown as BattleRound[]) : [],
+      finishedAt: r.finished_at,
     })),
     customSummaries: (customSums.data ?? []).map((r) => ({
       id: r.id,
@@ -880,6 +921,25 @@ export async function logReview(
     score,
     total,
     taken_at: Date.now(),
+  });
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+// ============== Battle results ==============
+export async function saveBattleResult(r: Omit<BattleResult, "finishedAt">) {
+  const { error } = await supabase.from("battle_results").upsert({
+    battle_id: r.battleId,
+    supervisor: r.supervisor,
+    p1: r.p1,
+    p2: r.p2,
+    p1_score: r.p1Score,
+    p2_score: r.p2Score,
+    winner: r.winner,
+    subject: r.subject,
+    scope: r.scope,
+    rounds: r.rounds as never,
+    finished_at: Date.now(),
   });
   if (error) throw new Error(error.message);
   await invalidate();

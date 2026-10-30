@@ -11,6 +11,8 @@ import {
   minutesToday,
   parseLiveBattleConfig,
   dateKey,
+  saveBattleResult,
+  type BattleRound,
   setChallengeStatus,
   setSubjectBook,
   streakFor,
@@ -24,8 +26,11 @@ import { LessonProgressEditor } from "@/components/LessonProgressEditor";
 import { QuestionBank } from "@/components/QuestionBank";
 import { SummaryEditor } from "@/components/SummaryEditor";
 import { SessionsView } from "@/components/SessionsView";
+import { ResultsTab } from "@/components/ResultsTab";
+import { BattleHistory } from "@/components/BattleHistory";
 import { LiveRoomViewer } from "@/components/student/PomodoroRoom";
 import { LiveChat } from "@/components/LiveChat";
+import { logAnswers } from "@/lib/answers";
 import { AchievementsCard } from "@/components/Motivation";
 import { WIN_QUOTES, pickBySeed, starsFor } from "@/lib/motivation";
 import { battleBlockers, battleLessons, commonFullUnits, commonLessons, unitsOf } from "@/lib/progress";
@@ -36,7 +41,7 @@ export const Route = createFileRoute("/supervisor")({
   component: SupervisorPage,
 });
 
-type TabKey = "overview" | "sessions" | "subjects" | "battles" | "questions" | "summaries";
+type TabKey = "overview" | "results" | "sessions" | "subjects" | "battles" | "questions" | "summaries";
 
 const COLORS = ["#f472b6", "#60a5fa", "#34d399", "#fbbf24", "#a78bfa", "#fb7185", "#22d3ee", "#facc15"];
 
@@ -47,6 +52,8 @@ export interface WireQ {
   options: string[];
   correct: number;
   unit: string;
+  subject?: string;
+  lesson?: string;
 }
 export type BMsg =
   | { t: "JOIN"; who: string }
@@ -66,6 +73,7 @@ function SupervisorPage() {
       tabs={
         <>
           <Tab active={tab === "overview"} onClick={() => setTab("overview")}>📊 المتابعة</Tab>
+          <Tab active={tab === "results"} onClick={() => setTab("results")}>📈 النتائج والأخطاء</Tab>
           <Tab active={tab === "sessions"} onClick={() => setTab("sessions")}>🕒 الجلسات</Tab>
           <Tab active={tab === "subjects"} onClick={() => setTab("subjects")}>📘 إدارة المواد</Tab>
           <Tab active={tab === "battles"} onClick={() => setTab("battles")}>⚔️ مسابقات حية</Tab>
@@ -79,6 +87,7 @@ function SupervisorPage() {
       {tab === "battles" && <BattlesTab />}
       {tab === "questions" && <QuestionBank />}
       {tab === "sessions" && <SessionsView />}
+      {tab === "results" && <ResultsTab />}
       {tab === "summaries" && <SummaryEditor />}
     </AppShell>
   );
@@ -310,6 +319,8 @@ function BattlesTab() {
         )}
       </div>
 
+      <BattleHistory title="📜 نتائج المسابقات المنتهية" />
+
       {/* Battle list */}
       {myBattles.length > 0 && (
         <div className="space-y-3">
@@ -379,6 +390,7 @@ function SupervisorBattleRoom({
   const scoresRef = useRef(scores);
   const qiRef = useRef(qi);
   const questionsRef = useRef(questions);
+  const roundsRef = useRef<BattleRound[]>([]);
   scoresRef.current = scores;
   qiRef.current = qi;
   questionsRef.current = questions;
@@ -391,6 +403,14 @@ function SupervisorBattleRoom({
     const q = questionsRef.current[currentQi];
     if (!q) return;
     const ok = q.correct === opt;
+    // keep the round for the battle history and the answer for the student's mistakes review
+    roundsRef.current[currentQi] = {
+      q: q.q, options: q.options, correct: q.correct, lesson: q.lesson ?? q.unit, who: buzzerWho, chosen: opt, ok,
+    };
+    logAnswers(buzzerWho, "battle", [{
+      questionId: q.id, subject: q.subject ?? cfg.subject, lesson: q.lesson ?? q.unit,
+      q: q.q, options: q.options, correct: q.correct, chosen: opt,
+    }]);
     const s = { ...scoresRef.current };
     if (ok) { if (buzzerWho === cfg.p1) s.p1++; else s.p2++; }
     setScores(s);
@@ -406,6 +426,18 @@ function SupervisorBattleRoom({
         setPhase("done");
         send({ t: "DONE", winner: w, p1: s.p1, p2: s.p2 });
         void setChallengeStatus(battle.id, "done", w ?? undefined);
+        void saveBattleResult({
+          battleId: battle.id,
+          supervisor: supervisorUsername,
+          p1: cfg.p1,
+          p2: cfg.p2,
+          p1Score: s.p1,
+          p2Score: s.p2,
+          winner: w,
+          subject: cfg.subject,
+          scope: [cfg.unit, cfg.lesson].filter(Boolean).join(" • ") || null,
+          rounds: roundsRef.current.filter(Boolean),
+        }).catch(() => {});
       } else {
         setQi(nextQi);
         setBuzzer(null);
@@ -414,7 +446,7 @@ function SupervisorBattleRoom({
         send({ t: "NEXT", qi: nextQi });
       }
     }, 2500);
-  }, [cfg, battle.id, send]);
+  }, [cfg, battle.id, send, supervisorUsername]);
 
   useEffect(() => {
     const ch = supabase.channel(`battle:${battle.id}`);
@@ -456,7 +488,9 @@ function SupervisorBattleRoom({
     rememberBattleQuestions(picked.map((q) => q.id));
     const qs = picked.map((q) => ({
       id: q.id, q: q.q, options: q.options, correct: q.correct, unit: q.unit,
+      subject: q.subject, lesson: q.lesson,
     }));
+    roundsRef.current = [];
     setQuestions(qs);
     setQi(0);
     setPhase("question");

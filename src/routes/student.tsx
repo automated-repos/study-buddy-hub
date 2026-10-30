@@ -28,6 +28,8 @@ import { subjectsMissingProgress } from "@/lib/progress";
 import { LOSE_QUOTES, WIN_QUOTES, levelFor, pickBySeed, ratingFor, starsFor } from "@/lib/motivation";
 import { AchievementsCard, RatingStars } from "@/components/Motivation";
 import { supabase } from "@/lib/supabase";
+import { logAnswers } from "@/lib/answers";
+import { BattleHistory } from "@/components/BattleHistory";
 import { PomodoroProvider } from "@/lib/pomodoro";
 import { PomodoroRoom, StudyBar } from "@/components/student/PomodoroRoom";
 import { ScheduleView } from "@/components/student/ScheduleView";
@@ -298,6 +300,19 @@ function QuizView() {
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
       }
       // log in background — don't block the result screen
+      logAnswers(
+        profile.username,
+        "quiz",
+        qs.map((q, j) => ({
+          questionId: q.id,
+          subject: q.subject,
+          lesson: q.lesson,
+          q: q.q,
+          options: q.options,
+          correct: q.correct,
+          chosen: next[j] ?? null,
+        })),
+      );
       const dbSubj = dbSubjects.find((s) => s.name === selectedSubject);
       if (dbSubj) {
         logQuiz(profile.username, dbSubj.id, score, qs.length).catch(() => {});
@@ -669,6 +684,9 @@ function ChallengesView() {
           })}
         </div>
       )}
+      <div className="mt-8">
+        <BattleHistory username={username} title="⚔️ تاريخ ونتائج تحدياتي" />
+      </div>
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import type { AIQuestion } from "@/lib/ai-content";
 import { formatClock } from "@/lib/pomodoro";
+import { logAnswers, type AnswerSource } from "@/lib/answers";
+import { useCurrentProfile } from "@/lib/store";
 
 /** Runs a list of multiple-choice questions, then shows the score and a review of mistakes. */
 export function QuizRunner({
@@ -10,6 +12,7 @@ export function QuizRunner({
   secondsPerQuestion,
   onFinish,
   onExit,
+  logAs,
 }: {
   questions: AIQuestion[];
   title: string;
@@ -17,7 +20,10 @@ export function QuizRunner({
   secondsPerQuestion?: number;
   onFinish: (score: number, total: number) => void;
   onExit: () => void;
+  /** save every answer under this source so mistakes can be reviewed later */
+  logAs?: AnswerSource;
 }) {
+  const profile = useCurrentProfile();
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [done, setDone] = useState(false);
@@ -30,6 +36,20 @@ export function QuizRunner({
     );
     setAnswers(final);
     setDone(true);
+    if (logAs && profile)
+      logAnswers(
+        profile.username,
+        logAs,
+        questions.map((q, j) => ({
+          questionId: q.id,
+          subject: q.subject,
+          lesson: q.lesson,
+          q: q.q,
+          options: q.options,
+          correct: q.correct,
+          chosen: final[j] ?? null,
+        })),
+      );
     if (score / questions.length >= 0.6)
       confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
     onFinish(score, questions.length);

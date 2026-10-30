@@ -1,6 +1,8 @@
 import { useState } from "react";
 import confetti from "canvas-confetti";
 import { MapView } from "@/components/MapView";
+import { logAnswers } from "@/lib/answers";
+import { useCurrentProfile } from "@/lib/store";
 import { MAP_QUESTIONS, contextRefs, type MapQuestion } from "@/lib/mapQuestions";
 
 interface Shown extends MapQuestion {
@@ -20,6 +22,7 @@ function prepare(list: MapQuestion[], count: number): Shown[] {
 
 /** Map questions: a highlighted map, choose the answer, see the labelled map after answering. */
 export function MapQuiz() {
+  const profile = useCurrentProfile();
   const [subject, setSubject] = useState<"all" | "جغرافيا" | "تاريخ">("all");
   const [count, setCount] = useState(10);
   const [qs, setQs] = useState<Shown[] | null>(null);
@@ -115,6 +118,19 @@ export function MapQuiz() {
   const choose = (i: number) => {
     if (answered) return;
     setPicked(i);
+    // saved in the original option order (right answer = index 0)
+    if (profile)
+      logAnswers(profile.username, "map", [
+        {
+          questionId: q.id,
+          subject: q.subject,
+          lesson: q.lesson,
+          q: q.q,
+          options: [...q.options],
+          correct: 0,
+          chosen: q.options.indexOf(q.shuffled[i] as (typeof q.options)[number]),
+        },
+      ]);
     if (i === q.correctIndex) {
       setScore((s) => s + 1);
       confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });

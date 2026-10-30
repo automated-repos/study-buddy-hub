@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      answer_log: {
+        Row: {
+          chosen: number | null
+          correct: number
+          created_at: number
+          id: string
+          is_correct: boolean
+          lesson: string
+          options: Json
+          q: string
+          question_id: string
+          source: string
+          subject: string
+          username: string
+        }
+        Insert: {
+          chosen?: number | null
+          correct: number
+          created_at?: number
+          id: string
+          is_correct: boolean
+          lesson: string
+          options: Json
+          q: string
+          question_id: string
+          source: string
+          subject: string
+          username: string
+        }
+        Update: {
+          chosen?: number | null
+          correct?: number
+          created_at?: number
+          id?: string
+          is_correct?: boolean
+          lesson?: string
+          options?: Json
+          q?: string
+          question_id?: string
+          source?: string
+          subject?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      battle_results: {
+        Row: {
+          battle_id: string
+          finished_at: number
+          p1: string
+          p1_score: number
+          p2: string
+          p2_score: number
+          rounds: Json
+          scope: string | null
+          subject: string
+          supervisor: string | null
+          winner: string | null
+        }
+        Insert: {
+          battle_id: string
+          finished_at?: number
+          p1: string
+          p1_score: number
+          p2: string
+          p2_score: number
+          rounds: Json
+          scope?: string | null
+          subject: string
+          supervisor?: string | null
+          winner?: string | null
+        }
+        Update: {
+          battle_id?: string
+          finished_at?: number
+          p1?: string
+          p1_score?: number
+          p2?: string
+          p2_score?: number
+          rounds?: Json
+          scope?: string | null
+          subject?: string
+          supervisor?: string | null
+          winner?: string | null
+        }
+        Relationships: []
+      }
       books: {
         Row: {
           added_at: number
