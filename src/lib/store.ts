@@ -75,7 +75,42 @@ export interface LessonProgress {
   updatedAt: number;
 }
 
-interface DB {
+export interface StudyTask {
+  id: string;
+  ownerUsername: string;
+  date: string; // YYYY-MM-DD, local time
+  subject: string;
+  title: string;
+  minutes: number;
+  done: boolean;
+  createdAt: number;
+}
+
+export interface ReviewResult {
+  id: string;
+  ownerUsername: string;
+  kind: "biweekly" | "comprehensive";
+  subject: string | null;
+  score: number;
+  total: number;
+  takenAt: number;
+}
+
+export interface CustomSummaryRow {
+  id: string;
+  subject: string;
+  lesson: string;
+  data: unknown;
+}
+
+/** Local calendar date as YYYY-MM-DD (toISOString would use UTC and shift late-night study to the wrong day). */
+export function dateKey(d: Date = new Date()): string {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+export interface DB {
   profiles: Profile[];
   subjects: Subject[];
   books: Book[];
@@ -84,6 +119,9 @@ interface DB {
   challenges: Challenge[];
   progress: LessonProgress[];
   questionEdits: QuestionEdit[];
+  tasks: StudyTask[];
+  reviews: ReviewResult[];
+  customSummaries: CustomSummaryRow[];
   currentUsername: string | null;
   /** false until the first fetch from Supabase finishes */
   loaded: boolean;
@@ -98,6 +136,9 @@ const initial: Omit<DB, "currentUsername" | "loaded"> = {
   challenges: [],
   progress: [],
   questionEdits: [],
+  tasks: [],
+  reviews: [],
+  customSummaries: [],
 };
 
 // ============== Session (localStorage — only the username string) ==============
@@ -195,7 +236,7 @@ function mapChallenge(r: any): Challenge {
 export const DB_QUERY_KEY = ["db"] as const;
 
 async function fetchAll() {
-  const [profiles, subjects, books, sessions, quizzes, challenges, progress, customQs] = await Promise.all([
+  const [profiles, subjects, books, sessions, quizzes, challenges, progress, customQs, tasks, reviews, customSums] = await Promise.all([
     supabase.from("profiles").select("*"),
     supabase.from("subjects").select("*"),
     supabase.from("books").select("*"),
@@ -204,6 +245,9 @@ async function fetchAll() {
     supabase.from("challenges").select("*"),
     supabase.from("student_progress").select("*"),
     supabase.from("custom_questions").select("*"),
+    supabase.from("study_tasks").select("*"),
+    supabase.from("reviews").select("*"),
+    supabase.from("custom_summaries").select("*"),
   ]);
   // empty if the custom_questions migration hasn't been applied yet
   const questionEdits: QuestionEdit[] = (customQs.data ?? []).map((r) => ({
@@ -220,6 +264,32 @@ async function fetchAll() {
   setQuestionEdits(questionEdits);
   return {
     questionEdits,
+    // the next three are empty until migration 0007 is applied
+    tasks: (tasks.data ?? []).map((r) => ({
+      id: r.id,
+      ownerUsername: r.owner_username,
+      date: r.date,
+      subject: r.subject,
+      title: r.title,
+      minutes: r.minutes,
+      done: r.done,
+      createdAt: r.created_at,
+    })),
+    reviews: (reviews.data ?? []).map((r) => ({
+      id: r.id,
+      ownerUsername: r.owner_username,
+      kind: r.kind as ReviewResult["kind"],
+      subject: r.subject,
+      score: r.score,
+      total: r.total,
+      takenAt: r.taken_at,
+    })),
+    customSummaries: (customSums.data ?? []).map((r) => ({
+      id: r.id,
+      subject: r.subject,
+      lesson: r.lesson,
+      data: r.data,
+    })),
     profiles: (profiles.data ?? []).map(mapProfile),
     subjects: (subjects.data ?? []).map(mapSubject),
     books: (books.data ?? []).map(mapBook),
@@ -415,7 +485,7 @@ export async function logSession(
   minutes: number,
   note?: string,
 ) {
-  const date = new Date().toISOString().slice(0, 10);
+  const date = dateKey();
   const { error } = await supabase.from("study_sessions").insert({
     id: uid(),
     owner_username: ownerUsername,
@@ -546,7 +616,7 @@ export function streakFor(username: string, db: Pick<DB, "sessions">) {
   let streak = 0;
   const d = new Date();
   for (;;) {
-    const k = d.toISOString().slice(0, 10);
+    const k = dateKey(d);
     if (dates.has(k)) {
       streak++;
       d.setDate(d.getDate() - 1);
@@ -556,7 +626,7 @@ export function streakFor(username: string, db: Pick<DB, "sessions">) {
 }
 
 export function minutesToday(username: string, db: Pick<DB, "sessions">) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dateKey();
   return db.sessions
     .filter((s) => s.ownerUsername === username && s.date === today)
     .reduce((a, b) => a + b.minutes, 0);
@@ -757,6 +827,87 @@ export async function restoreQuestion(id: string) {
   await invalidate();
 }
 
+// ============== Study tasks (daily schedule) ==============
+export async function addTasks(
+  username: string,
+  tasks: { date: string; subject: string; title: string; minutes: number }[],
+) {
+  if (tasks.length === 0) return;
+  const { error } = await supabase.from("study_tasks").insert(
+    tasks.map((t) => ({
+      id: uid(),
+      owner_username: username,
+      date: t.date,
+      subject: t.subject,
+      title: t.title,
+      minutes: t.minutes,
+      done: false,
+      created_at: Date.now(),
+    })),
+  );
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+export async function updateTask(
+  id: string,
+  patch: Partial<Pick<StudyTask, "title" | "minutes" | "subject" | "done">>,
+) {
+  const { error } = await supabase.from("study_tasks").update(patch).eq("id", id);
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+export async function deleteTask(id: string) {
+  const { error } = await supabase.from("study_tasks").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+// ============== Comprehensive tests & biweekly reviews ==============
+export async function logReview(
+  username: string,
+  kind: ReviewResult["kind"],
+  subject: string | null,
+  score: number,
+  total: number,
+) {
+  const { error } = await supabase.from("reviews").insert({
+    id: uid(),
+    owner_username: username,
+    kind,
+    subject,
+    score,
+    total,
+    taken_at: Date.now(),
+  });
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+// ============== Supervisor edits to summaries ==============
+export async function saveCustomSummary(subject: string, lesson: string, data: unknown, by: string) {
+  const { error } = await supabase.from("custom_summaries").upsert({
+    id: `${subject}|${lesson}`,
+    subject,
+    lesson,
+    data: data as never,
+    updated_by: by,
+    updated_at: Date.now(),
+  });
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+export async function deleteCustomSummary(subject: string, lesson: string) {
+  const { error } = await supabase
+    .from("custom_summaries")
+    .delete()
+    .eq("id", `${subject}|${lesson}`);
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
 // ============== Daily Plan ==============
 export interface PlanItem {
   subjectId: string;
@@ -784,7 +935,7 @@ export function dailyPlan(username: string, db: Pick<DB, "subjects">): PlanItem[
     .slice(0, 4);
   const totalW = weighted.reduce((a, b) => a + b.remaining, 0);
   const dayBudget = 150;
-  const seed = new Date().toISOString().slice(0, 10).split("-").join("");
+  const seed = dateKey().split("-").join("");
   return weighted.map((w, i) => ({
     subjectId: w.s.id,
     subjectName: w.s.name,

@@ -12,7 +12,6 @@ import {
   logSession,
   minutesToday,
   parseLiveBattleConfig,
-  pointsFor,
   seedStudentSubjects,
   streakFor,
   updateSubject,
@@ -26,7 +25,14 @@ import { getQuestionsByScope, getSummariesFor, SUBJECTS, type AIQuestion } from 
 import { ScopePicker } from "@/components/ScopePicker";
 import { LessonProgressEditor } from "@/components/LessonProgressEditor";
 import { subjectsMissingProgress } from "@/lib/progress";
+import { LOSE_QUOTES, WIN_QUOTES, levelFor, pickBySeed, ratingFor, starsFor } from "@/lib/motivation";
+import { AchievementsCard, RatingStars } from "@/components/Motivation";
 import { supabase } from "@/lib/supabase";
+import { PomodoroProvider } from "@/lib/pomodoro";
+import { PomodoroRoom, StudyBar } from "@/components/student/PomodoroRoom";
+import { ScheduleView } from "@/components/student/ScheduleView";
+import { TestsCenter } from "@/components/student/TestsCenter";
+import { StudyMaterial } from "@/components/student/StudyMaterial";
 import type { BMsg, WireQ } from "./supervisor";
 
 export const Route = createFileRoute("/student")({
@@ -34,9 +40,17 @@ export const Route = createFileRoute("/student")({
   component: StudentPage,
 });
 
-type TabKey = "today" | "subjects" | "quiz" | "summaries" | "books" | "ranking" | "challenges";
+type TabKey = "today" | "subjects" | "live" | "quiz" | "summaries" | "books" | "ranking" | "challenges";
 
 function StudentPage() {
+  return (
+    <PomodoroProvider>
+      <StudentTabs />
+    </PomodoroProvider>
+  );
+}
+
+function StudentTabs() {
   const [tab, setTab] = useState<TabKey>("today");
   const profile = useCurrentProfile();
   const db = useDB();
@@ -52,10 +66,11 @@ function StudentPage() {
         <>
           {(
             [
-              ["today", "🎯 اليوم"],
+              ["today", "🎯 جدولي اليوم"],
               ["subjects", "📘 المواد"],
-              ["quiz", "⚡ اختبار سريع"],
-              ["summaries", "📋 ملخصات"],
+              ["live", "🍅 مذاكرة لايف"],
+              ["quiz", "📝 الاختبارات"],
+              ["summaries", "📋 ملخصات وخرائط"],
               ["books", "📚 الكتب"],
               ["ranking", "🏆 الترتيب"],
               ["challenges", "⚔️ تحديات"],
@@ -68,6 +83,7 @@ function StudentPage() {
         </>
       }
     >
+      {tab !== "live" && <StudyBar onOpen={() => setTab("live")} />}
       <AnimatePresence mode="wait">
         <motion.div
           key={tab}
@@ -76,10 +92,11 @@ function StudentPage() {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
         >
-          {tab === "today" && <TodayView />}
+          {tab === "today" && <ScheduleView onOpenTests={() => setTab("quiz")} />}
           {tab === "subjects" && <SubjectsView missing={missing} />}
-          {tab === "quiz" && <QuizView />}
-          {tab === "summaries" && <SummariesView />}
+          {tab === "live" && <PomodoroRoom />}
+          {tab === "quiz" && <TestsCenter quick={<QuizView />} />}
+          {tab === "summaries" && <StudyMaterial />}
           {tab === "books" && <BooksView />}
           {tab === "ranking" && <RankingView />}
           {tab === "challenges" && <ChallengesView />}
@@ -119,136 +136,6 @@ function RequiredProgressModal({ missing, onGo }: { missing: string[]; onGo: () 
         </button>
       </motion.div>
     </div>
-  );
-}
-
-// ============== TODAY ==============
-function TodayView() {
-  const profile = useCurrentProfile()!;
-  const db = useDB();
-  const plan = useMemo(() => dailyPlan(profile.username, db), [profile.username, db]);
-  const todayMin = minutesToday(profile.username, db);
-  const goal = plan.reduce((a, p) => a + p.minutes, 0) || 120;
-  const progress = Math.min(100, Math.round((todayMin / goal) * 100));
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-card-gradient rounded-3xl p-6 shadow-soft border border-border">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <p className="text-muted-foreground text-sm">هدف اليوم</p>
-            <h2 className="text-3xl font-bold">
-              {todayMin} / {goal} <span className="text-base text-muted-foreground">دقيقة</span>
-            </h2>
-          </div>
-          <div className="text-5xl">{progress >= 100 ? "🏆" : progress >= 50 ? "🚀" : "💪"}</div>
-        </div>
-        <div className="h-3 mt-4 rounded-full bg-muted overflow-hidden">
-          <motion.div
-            className="h-full bg-hero"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.6 }}
-          />
-        </div>
-      </div>
-
-      {plan.length === 0 ? (
-        <EmptyState
-          icon="📘"
-          title="ابدأ بإضافة موادك"
-          desc="من تبويب «المواد» أضف مواد الثانوية العامة لتُولّد لك خطة يومية تلقائياً."
-        />
-      ) : (
-        <div>
-          <h3 className="text-xl font-bold mb-3">خطة اليوم المقترحة</h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            {plan.map((p, i) => (
-              <PlanCard key={i} item={p} index={i} username={profile.username} />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PlanCard({
-  item,
-  index,
-  username,
-}: {
-  item: ReturnType<typeof dailyPlan>[number];
-  index: number;
-  username: string;
-}) {
-  const [running, setRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0); // seconds
-
-  const startTimer = () => {
-    setRunning(true);
-    setElapsed(0);
-    const start = Date.now();
-    const intv = setInterval(() => {
-      const sec = Math.floor((Date.now() - start) / 1000);
-      setElapsed(sec);
-    }, 1000);
-    (window as any).__planIntv = intv;
-  };
-  const stopAndLog = async () => {
-    clearInterval((window as any).__planIntv);
-    setRunning(false);
-    const min = Math.max(1, Math.round(elapsed / 60));
-    await logSession(username, item.subjectId, min);
-    confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06 }}
-      className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft relative overflow-hidden"
-    >
-      <div
-        className="absolute -top-10 -left-10 w-32 h-32 rounded-full opacity-30 blur-2xl"
-        style={{ background: item.color }}
-      />
-      <div className="relative">
-        <div className="flex items-center justify-between">
-          <h4 className="text-lg font-bold">{item.subjectName}</h4>
-          <span
-            className="rounded-full px-3 py-1 text-xs font-bold"
-            style={{ background: item.color + "33", color: item.color }}
-          >
-            {item.minutes} د
-          </span>
-        </div>
-        <p className="text-sm text-muted-foreground mt-2">{item.focus}</p>
-
-        {running ? (
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <div className="text-2xl font-mono font-bold text-accent">
-              {String(Math.floor(elapsed / 60)).padStart(2, "0")}:
-              {String(elapsed % 60).padStart(2, "0")}
-            </div>
-            <button
-              onClick={stopAndLog}
-              className="bg-success-gradient text-primary-foreground font-bold px-4 py-2 rounded-2xl"
-            >
-              إنهاء وتسجيل
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={startTimer}
-            className="mt-4 w-full bg-hero text-primary-foreground font-bold py-2.5 rounded-2xl shadow-glow"
-          >
-            ابدأ المذاكرة ▶
-          </button>
-        )}
-      </div>
-    </motion.div>
   );
 }
 
@@ -542,91 +429,6 @@ function QuizView() {
 }
 
 // ============== SUMMARIES ==============
-function SummariesView() {
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [expanded, setExpanded] = useState<string | null>(null);
-
-  const summaries = selectedSubject ? getSummariesFor(selectedSubject) : [];
-
-  return (
-    <div className="space-y-5">
-      <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">
-        <h3 className="font-bold mb-3">ملخصات الكتب المدرسية</h3>
-        <label className="text-sm text-muted-foreground">اختر المادة</label>
-        <select
-          value={selectedSubject}
-          onChange={(e) => { setSelectedSubject(e.target.value); setExpanded(null); }}
-          className="w-full bg-input rounded-2xl px-4 py-3 mt-1 outline-none"
-        >
-          <option value="">— اختر المادة —</option>
-          {SUBJECTS.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
-      </div>
-
-      {!selectedSubject && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {SUBJECTS.map((name) => (
-            <button
-              key={name}
-              onClick={() => setSelectedSubject(name)}
-              className="bg-card-gradient rounded-2xl p-4 border border-border shadow-soft text-center font-bold hover:bg-primary/10 transition"
-            >
-              {name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selectedSubject && summaries.length === 0 && (
-        <EmptyState icon="📋" title="لا توجد ملخصات" desc="لا تتوفر ملخصات لهذه المادة بعد." />
-      )}
-
-      {summaries.map((s, i) => {
-        const key = `${s.subject}-${i}`;
-        const isOpen = expanded === key;
-        return (
-          <motion.div
-            key={key}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="bg-card-gradient rounded-3xl border border-border shadow-soft overflow-hidden"
-          >
-            <button
-              onClick={() => setExpanded(isOpen ? null : key)}
-              className="w-full flex items-center justify-between gap-3 p-5 text-right"
-            >
-              <div>
-                <p className="text-xs text-muted-foreground">{s.unit}</p>
-                <h4 className="font-bold text-lg">{s.title}</h4>
-              </div>
-              <span className="text-xl shrink-0">{isOpen ? "▲" : "▼"}</span>
-            </button>
-            {isOpen && (
-              <div className="px-5 pb-5 space-y-4 border-t border-border pt-4">
-                <p className="text-sm leading-relaxed text-muted-foreground">{s.summary}</p>
-                <div>
-                  <p className="font-bold text-sm mb-2">النقاط الرئيسية</p>
-                  <ul className="space-y-1.5">
-                    {s.keyPoints.map((kp, j) => (
-                      <li key={j} className="flex items-start gap-2 text-sm">
-                        <span className="text-accent mt-0.5 shrink-0">✦</span>
-                        <span>{kp}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ============== BOOKS ==============
 function BooksView() {
   const profile = useCurrentProfile()!;
@@ -732,12 +534,14 @@ function BooksView() {
 
 // ============== RANKING ==============
 function RankingView() {
+  const profile = useCurrentProfile()!;
   const db = useDB();
   const students = db.profiles.filter((p) => p.role === "student");
   const rows = students
     .map((s) => ({
       ...s,
-      pts: pointsFor(s.username, db),
+      pts: starsFor(s.username, db),
+      rating: ratingFor(s.username, db).rating,
       streak: streakFor(s.username, db),
       today: minutesToday(s.username, db),
     }))
@@ -746,7 +550,12 @@ function RankingView() {
   const medals = ["🥇", "🥈", "🥉"];
   return (
     <div className="space-y-4">
+      <AchievementsCard username={profile.username} />
       <h3 className="text-xl font-bold">لوحة ترتيب الإخوة</h3>
+      <p className="text-sm text-muted-foreground">
+        الترتيب حسب النجوم المكتسبة من كل أنشطة المذاكرة: الوقت، المهام، الاختبارات، المراجعات،
+        الدروس المنتهية والمسابقات.
+      </p>
       {rows.length === 0 ? (
         <EmptyState icon="🏆" title="لا يوجد طلاب بعد" desc="أنشئ حسابات لإخوتك." />
       ) : (
@@ -768,10 +577,11 @@ function RankingView() {
               <div className="flex-1">
                 <div className="font-bold text-lg">{r.displayName}</div>
                 <div className="text-xs opacity-80">
-                  🔥 {r.streak} يوم • اليوم {r.today} د
+                  {levelFor(r.pts).icon} {levelFor(r.pts).title} • 🔥 {r.streak} يوم • اليوم {r.today} د
                 </div>
+                <RatingStars rating={r.rating} className="text-sm mt-0.5" />
               </div>
-              <div className="text-2xl font-bold">{r.pts}<span className="text-sm font-normal opacity-70 mr-1">نقطة</span></div>
+              <div className="text-2xl font-bold">⭐ {r.pts}</div>
             </motion.div>
           ))}
         </div>
@@ -982,9 +792,14 @@ function PlayerBattleRoom({
         <h3 className="text-3xl font-bold">
           {iWon ? "فزت! 🎉" : isDraw ? "تعادل!" : "خسرت هذه المرة"}
         </h3>
-        <p className="text-muted-foreground mt-2 text-sm">
-          {iWon ? "أنت الأسرع والأذكى!" : isDraw ? "المباراة متكافئة" : "استمر في التدريب!"}
+        <p className="mt-3 font-semibold text-accent">
+          {iWon
+            ? pickBySeed(WIN_QUOTES, battle.id)
+            : isDraw
+              ? "مباراة متكافئة! أنتما الاثنان في القمة 🤝"
+              : pickBySeed(LOSE_QUOTES, battle.id)}
         </p>
+        {iWon && <p className="text-xs text-muted-foreground mt-1">+5 نجوم ⭐ أضيفت إلى رصيدك</p>}
         <div className="flex justify-center gap-12 mt-8">
           <div className="text-center">
             <div className="text-4xl font-black">{myScore}</div>

@@ -1,5 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { logout, useCurrentProfile, pointsFor, streakFor, useDB } from "@/lib/store";
+import { logout, useCurrentProfile, streakFor, useDB } from "@/lib/store";
+import { levelFor, ratingFor, starsFor } from "@/lib/motivation";
+import { RatingStars } from "./Motivation";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 
@@ -15,7 +17,9 @@ export function AppShell({ children, tabs }: { children: ReactNode; tabs?: React
   }, [profile, navigate]);
 
   if (!profile) return null;
-  const pts = pointsFor(profile.username, db);
+  const stars = starsFor(profile.username, db);
+  const level = levelFor(stars);
+  const { rating } = ratingFor(profile.username, db);
   const streak = streakFor(profile.username, db);
 
   return (
@@ -33,7 +37,10 @@ export function AppShell({ children, tabs }: { children: ReactNode; tabs?: React
                 <span className="text-accent">🔥</span> {streak} يوم
               </div>
               <div className="glass rounded-2xl px-3 py-1.5 text-sm">
-                <span className="text-accent">⭐</span> {pts} نقطة
+                {level.icon} {level.title} • ⭐ {stars}
+              </div>
+              <div className="glass rounded-2xl px-3 py-1.5 text-sm">
+                <RatingStars rating={rating} />
               </div>
             </div>
           )}

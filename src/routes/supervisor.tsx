@@ -10,7 +10,7 @@ import {
   isLiveBattle,
   minutesToday,
   parseLiveBattleConfig,
-  pointsFor,
+  dateKey,
   setChallengeStatus,
   setSubjectBook,
   streakFor,
@@ -22,6 +22,10 @@ import {
 import { SUBJECTS, getQuestionsFromLessons } from "@/lib/ai-content";
 import { LessonProgressEditor } from "@/components/LessonProgressEditor";
 import { QuestionBank } from "@/components/QuestionBank";
+import { SummaryEditor } from "@/components/SummaryEditor";
+import { LiveRoomViewer } from "@/components/student/PomodoroRoom";
+import { AchievementsCard } from "@/components/Motivation";
+import { WIN_QUOTES, pickBySeed, starsFor } from "@/lib/motivation";
 import { battleBlockers, battleLessons, commonFullUnits, commonLessons, unitsOf } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 
@@ -30,7 +34,7 @@ export const Route = createFileRoute("/supervisor")({
   component: SupervisorPage,
 });
 
-type TabKey = "overview" | "subjects" | "battles" | "questions";
+type TabKey = "overview" | "subjects" | "battles" | "questions" | "summaries";
 
 const COLORS = ["#f472b6", "#60a5fa", "#34d399", "#fbbf24", "#a78bfa", "#fb7185", "#22d3ee", "#facc15"];
 
@@ -63,6 +67,7 @@ function SupervisorPage() {
           <Tab active={tab === "subjects"} onClick={() => setTab("subjects")}>📘 إدارة المواد</Tab>
           <Tab active={tab === "battles"} onClick={() => setTab("battles")}>⚔️ مسابقات حية</Tab>
           <Tab active={tab === "questions"} onClick={() => setTab("questions")}>📝 بنك الأسئلة</Tab>
+          <Tab active={tab === "summaries"} onClick={() => setTab("summaries")}>📚 الملخصات والمقالي</Tab>
         </>
       }
     >
@@ -70,6 +75,7 @@ function SupervisorPage() {
       {tab === "subjects" && <SubjectsTab />}
       {tab === "battles" && <BattlesTab />}
       {tab === "questions" && <QuestionBank />}
+      {tab === "summaries" && <SummaryEditor />}
     </AppShell>
   );
 }
@@ -84,9 +90,11 @@ function OverviewTab() {
       <div>
         <h1 className="text-3xl font-bold">متابعة الأبناء</h1>
         <p className="text-muted-foreground mt-1">
-          نظرة شاملة على أداء كل طالب — نقاط، سلسلة أيام، تقدم في المواد، واختبارات.
+          نظرة شاملة على أداء كل طالب — نجوم وتقييم، سلسلة أيام، تقدم في المواد، واختبارات.
         </p>
       </div>
+
+      <LiveRoomViewer />
 
       {students.length === 0 ? (
         <div className="bg-card-gradient rounded-3xl p-10 text-center border border-border">
@@ -517,6 +525,9 @@ function SupervisorBattleRoom({
         <h2 className="text-3xl font-bold">
           {winner ? `فاز ${winner === cfg.p1 ? p1P?.displayName ?? cfg.p1 : p2P?.displayName ?? cfg.p2}!` : "تعادل!"}
         </h2>
+        <p className="mt-3 font-semibold text-accent">
+          {winner ? pickBySeed(WIN_QUOTES, battle.id) : "مباراة متكافئة! كلاهما في القمة 🤝"}
+        </p>
         <div className="flex justify-center gap-10 mt-8">
           <div className={`text-center ${p1Won ? "opacity-100" : "opacity-60"}`}>
             <div className="text-4xl">{p1P?.avatar ?? "🎓"}</div>
@@ -825,7 +836,7 @@ function StudentCard({ username, index }: { username: string; index: number }) {
   for (let i = 6; i >= 0; i--) {
     const dt = new Date();
     dt.setDate(dt.getDate() - i);
-    const k = dt.toISOString().slice(0, 10);
+    const k = dateKey(dt);
     const min = sessions.filter((s) => s.date === k).reduce((a, b) => a + b.minutes, 0);
     days.push({ d: dt.toLocaleDateString("ar-EG", { weekday: "short" }), min });
   }
@@ -846,9 +857,9 @@ function StudentCard({ username, index }: { username: string; index: number }) {
         </div>
         <div className="text-left">
           <div className="text-2xl font-bold bg-hero bg-clip-text text-transparent">
-            {pointsFor(username, db)}
+            ⭐ {starsFor(username, db)}
           </div>
-          <div className="text-xs text-muted-foreground">نقطة</div>
+          <div className="text-xs text-muted-foreground">نجمة</div>
         </div>
       </div>
 
@@ -857,6 +868,10 @@ function StudentCard({ username, index }: { username: string; index: number }) {
         <Stat label="اليوم" value={`${minutesToday(username, db)}`} sub="دقيقة" />
         <Stat label="الإجمالي" value={`${Math.round(totalMin / 60)}`} sub="ساعة" />
         <Stat label="معدل الاختبارات" value={`${avgQuiz}%`} sub={`${quizzes.length} اختبار`} />
+      </div>
+
+      <div className="mt-5">
+        <AchievementsCard username={username} />
       </div>
 
       <div className="mt-5">

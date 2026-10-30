@@ -218,6 +218,112 @@ export type Database = {
           },
         ]
       }
+      custom_summaries: {
+        Row: {
+          data: Json
+          id: string
+          lesson: string
+          subject: string
+          updated_at: number
+          updated_by: string | null
+        }
+        Insert: {
+          data: Json
+          id: string
+          lesson: string
+          subject: string
+          updated_at?: number
+          updated_by?: string | null
+        }
+        Update: {
+          data?: Json
+          id?: string
+          lesson?: string
+          subject?: string
+          updated_at?: number
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          id: string
+          kind: string
+          owner_username: string
+          score: number
+          subject: string | null
+          taken_at: number
+          total: number
+        }
+        Insert: {
+          id: string
+          kind: string
+          owner_username: string
+          score: number
+          subject?: string | null
+          taken_at?: number
+          total: number
+        }
+        Update: {
+          id?: string
+          kind?: string
+          owner_username?: string
+          score?: number
+          subject?: string | null
+          taken_at?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_owner_username_fkey"
+            columns: ["owner_username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
+      study_tasks: {
+        Row: {
+          created_at: number
+          date: string
+          done: boolean
+          id: string
+          minutes: number
+          owner_username: string
+          subject: string
+          title: string
+        }
+        Insert: {
+          created_at?: number
+          date: string
+          done?: boolean
+          id: string
+          minutes?: number
+          owner_username: string
+          subject: string
+          title: string
+        }
+        Update: {
+          created_at?: number
+          date?: string
+          done?: boolean
+          id?: string
+          minutes?: number
+          owner_username?: string
+          subject?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_tasks_owner_username_fkey"
+            columns: ["owner_username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
       custom_questions: {
         Row: {
           correct: number
