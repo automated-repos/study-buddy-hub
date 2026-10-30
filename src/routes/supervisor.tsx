@@ -264,14 +264,9 @@ function SubjectsTab() {
               <div className="mt-3 flex items-center gap-3">
                 {s.bookPath ? (
                   <>
-                    <a
-                      href={getBookUrl(s.bookPath)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline"
-                    >
+                    <BookLink path={s.bookPath} className="text-xs text-primary hover:underline">
                       📄 فتح الكتاب
-                    </a>
+                    </BookLink>
                     <label className={`text-xs text-muted-foreground hover:text-foreground cursor-pointer ${uploadingFor === s.name ? "opacity-50" : ""}`}>
                       {uploadingFor === s.name ? "جارٍ الرفع..." : "تغيير الكتاب"}
                       <input
