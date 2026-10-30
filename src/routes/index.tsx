@@ -7,6 +7,7 @@ import {
   useCurrentProfile,
   useMounted,
   type Profile,
+  type Role,
 } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
