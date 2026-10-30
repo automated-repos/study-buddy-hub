@@ -65,7 +65,7 @@ export interface Challenge {
   winner?: string;
 }
 
-/** Last lesson a student has finished in a subject. */
+/** One finished lesson (empty unit/lesson = "not started" marker for the subject). */
 export interface LessonProgress {
   ownerUsername: string;
   subject: string;
@@ -630,25 +630,60 @@ export async function setChallengeStatus(
 }
 
 // ============== Lesson progress ==============
-/**
- * Save the last lesson a student finished in a subject.
- * pos = null means "not started yet" — saved as an empty unit/lesson so we know the student answered.
- */
-export async function setLessonProgress(
+const P = "student_progress";
+
+/** Tick or untick lessons as finished. Ticking removes the "not started" marker. */
+export async function setLessonsDone(
   username: string,
   subject: string,
-  pos: { unit: string; lesson: string } | null,
+  lessons: { unit: string; lesson: string }[],
+  done: boolean,
 ) {
-  const { error } = await supabase.from("student_progress").upsert(
-    {
-      owner_username: username,
-      subject,
-      unit: pos?.unit ?? "",
-      lesson: pos?.lesson ?? "",
-      updated_at: Date.now(),
-    },
-    { onConflict: "owner_username,subject" },
-  );
+  if (lessons.length === 0) return;
+  if (done) {
+    const { error } = await supabase.from(P).upsert(
+      lessons.map((l) => ({
+        owner_username: username,
+        subject,
+        unit: l.unit,
+        lesson: l.lesson,
+        updated_at: Date.now(),
+      })),
+      { onConflict: "owner_username,subject,unit,lesson", ignoreDuplicates: true },
+    );
+    if (error) throw new Error(error.message);
+    await supabase
+      .from(P)
+      .delete()
+      .eq("owner_username", username)
+      .eq("subject", subject)
+      .eq("lesson", "");
+  } else {
+    for (const l of lessons) {
+      const { error } = await supabase
+        .from(P)
+        .delete()
+        .eq("owner_username", username)
+        .eq("subject", subject)
+        .eq("unit", l.unit)
+        .eq("lesson", l.lesson);
+      if (error) throw new Error(error.message);
+    }
+  }
+  await invalidate();
+}
+
+/** "I haven't started this subject": clears ticked lessons and saves an empty marker row. */
+export async function setSubjectNotStarted(username: string, subject: string) {
+  const del = await supabase.from(P).delete().eq("owner_username", username).eq("subject", subject);
+  if (del.error) throw new Error(del.error.message);
+  const { error } = await supabase.from(P).insert({
+    owner_username: username,
+    subject,
+    unit: "",
+    lesson: "",
+    updated_at: Date.now(),
+  });
   if (error) throw new Error(error.message);
   await invalidate();
 }

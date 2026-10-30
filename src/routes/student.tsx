@@ -104,9 +104,9 @@ function RequiredProgressModal({ missing, onGo }: { missing: string[]; onGo: () 
         className="bg-card-gradient rounded-3xl p-6 border border-border shadow-soft w-full max-w-md text-center"
       >
         <div className="text-5xl mb-2">📍</div>
-        <h2 className="text-xl font-bold">قبل أن تبدأ: وصلت لأي درس؟</h2>
+        <h2 className="text-xl font-bold">قبل أن تبدأ: ما الدروس التي أنهيتها؟</h2>
         <p className="text-sm text-muted-foreground mt-2">
-          يجب تحديد آخر درس أنهيته في كل مادة من تبويب "المواد" قبل متابعة استخدام التطبيق.
+          يجب تحديد الدروس التي أنهيتها في كل مادة من تبويب "المواد" قبل متابعة استخدام التطبيق.
         </p>
         <p className="text-sm mt-3">
           المواد المتبقية: <span className="font-bold text-warning">{missing.join("، ")}</span>
@@ -278,15 +278,15 @@ function SubjectsView({ missing }: { missing: string[] }) {
   return (
     <div className="space-y-6">
       <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">
-        <h3 className="font-bold text-lg">📍 وصلت لأي درس؟</h3>
+        <h3 className="font-bold text-lg">📍 الدروس التي أنهيتها</h3>
         {missing.length > 0 && (
           <p className="mt-2 rounded-xl bg-warning/15 text-warning text-sm font-semibold px-3 py-2">
-            ⚠️ حدّد آخر درس أنهيته في: {missing.join("، ")} — لن تستطيع استخدام باقي التطبيق قبل
+            ⚠️ حدّد الدروس التي أنهيتها في: {missing.join("، ")} — لن تستطيع استخدام باقي التطبيق قبل
             ذلك.
           </p>
         )}
         <p className="text-xs text-muted-foreground mt-0.5 mb-3">
-          اختر آخر درس أنهيته في كل مادة — المسابقات تكون فقط في الدروس التي أنهيتها.
+          علّم على كل درس أنهيته، أو على الوحدة كاملة. المسابقات تكون فقط في الدروس والوحدات التي أنهيتها أنت ومنافسك.
         </p>
         <LessonProgressEditor username={profile.username} />
       </div>

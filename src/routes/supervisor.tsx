@@ -19,10 +19,9 @@ import {
   type Challenge,
   type LiveBattleConfig,
 } from "@/lib/store";
-import { SUBJECTS, getQuestionPool, getQuestionsByScope } from "@/lib/ai-content";
-import { ScopePicker } from "@/components/ScopePicker";
+import { SUBJECTS, getQuestionsFromLessons } from "@/lib/ai-content";
 import { LessonProgressEditor } from "@/components/LessonProgressEditor";
-import { unfinishedInScope } from "@/lib/progress";
+import { battleBlockers, battleLessons, commonFullUnits, commonLessons, unitsOf } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/supervisor")({
@@ -116,29 +115,40 @@ function BattlesTab() {
   const [creating, setCreating] = useState(false);
   const [activeBattle, setActiveBattle] = useState<Challenge | null>(null);
 
-  // students who haven't finished every lesson in the chosen scope
-  const blockers = [p1, p2]
-    .filter(Boolean)
-    .map((u) => ({
-      username: u,
-      name: students.find((s) => s.username === u)?.displayName ?? u,
-      missing: unfinishedInScope(db.progress, u, subject, unit || undefined, lesson || undefined),
-    }))
-    .filter((b) => b.missing.length > 0);
+  // What both students have finished: single lessons and complete units
+  const pair = p1 && p2 ? [p1, p2] : [];
+  const shared = pair.length ? commonLessons(db.progress, pair, subject) : [];
+  const fullUnits = pair.length ? commonFullUnits(db.progress, pair, subject) : [];
+  const scopeLessons = battleLessons(db.progress, pair, subject, unit || undefined, lesson || undefined);
+  const blocked =
+    pair.length > 0 &&
+    battleBlockers(db.progress, pair, subject, unit || undefined, lesson || undefined).length > 0;
+  const nameOf = (u: string) => students.find((s) => s.username === u)?.displayName ?? u;
+  const scopeValue = lesson ? `l:${unit}\u0001${lesson}` : unit ? `u:${unit}` : "";
+  const onScope = (v: string) => {
+    if (v.startsWith("l:")) {
+      const [u, l] = v.slice(2).split("\u0001");
+      setUnit(u);
+      setLesson(l);
+    } else {
+      setUnit(v.startsWith("u:") ? v.slice(2) : "");
+      setLesson("");
+    }
+  };
 
   const myBattles = db.challenges
     .filter((c) => isLiveBattle(c) && c.from === supervisorUsername)
     .sort((a, b) => b.createdAt - a.createdAt);
 
   const handleCreate = async () => {
-    if (!p1 || !p2 || p1 === p2 || blockers.length > 0) return;
+    if (!p1 || !p2 || p1 === p2 || blocked) return;
     setCreating(true);
     try {
       await createLiveBattle({
         supervisorUsername, p1, p2, subject,
         unit: unit || undefined, lesson: lesson || undefined,
         // a single lesson may have fewer questions than the chosen rounds
-        totalRounds: Math.min(rounds, getQuestionPool(subject, unit || undefined, lesson || undefined).length),
+        totalRounds: Math.min(rounds, getQuestionsFromLessons(subject, scopeLessons, 1000).length),
       });
     } finally {
       setCreating(false);
@@ -204,10 +214,33 @@ function BattlesTab() {
                   className="w-full bg-input rounded-2xl px-4 py-3 outline-none">
                   {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <div className="mt-3">
-                  <ScopePicker subject={subject} unit={unit} lesson={lesson}
-                    onUnitChange={setUnit} onLessonChange={setLesson} />
-                </div>
+                <label className="block text-xs text-muted-foreground mb-1 mt-3">نطاق الأسئلة</label>
+                <select value={scopeValue} onChange={(e) => onScope(e.target.value)}
+                  disabled={pair.length === 0 || shared.length === 0}
+                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none disabled:opacity-50">
+                  {pair.length === 0 ? (
+                    <option value="">اختر الطالبين أولاً</option>
+                  ) : shared.length === 0 ? (
+                    <option value="">لا توجد دروس أنهاها الطالبان</option>
+                  ) : (
+                    <>
+                      <option value="">كل الدروس المشتركة ({shared.length} درس)</option>
+                      {unitsOf(subject)
+                        .filter((u) => shared.some((l) => l.unit === u))
+                        .map((u) => (
+                          <optgroup key={u} label={u}>
+                            {fullUnits.includes(u) && <option value={`u:${u}`}>✅ الوحدة كاملة</option>}
+                            {shared.filter((l) => l.unit === u).map((l) => (
+                              <option key={l.lesson} value={`l:${u}\u0001${l.lesson}`}>{l.lesson}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                    </>
+                  )}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  تظهر فقط الدروس والوحدات الكاملة التي أنهاها الطالبان معاً.
+                </p>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">عدد الجولات</label>
@@ -221,23 +254,20 @@ function BattlesTab() {
                 </div>
               </div>
             </div>
-            {blockers.length > 0 && (
+            {blocked && (
               <div className="rounded-2xl border border-warning/40 bg-warning/10 p-4 text-sm space-y-1">
-                <p className="font-bold text-warning">⚠️ لا يمكن بدء المسابقة في هذا النطاق</p>
-                {blockers.map((b) => (
-                  <p key={b.username}>
-                    <span className="font-semibold">{b.name}</span> لم ينهِ بعد: {b.missing[0].lesson}
-                    {b.missing.length > 1 && ` (و${b.missing.length - 1} دروس أخرى)`}
-                  </p>
-                ))}
+                <p className="font-bold text-warning">⚠️ لا يمكن بدء مسابقة في {subject}</p>
+                <p>
+                  لا توجد دروس في هذه المادة أنهاها {nameOf(p1)} و{nameOf(p2)} معاً.
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  اختر وحدة أو درساً أنهاه الطالبان، أو حدّث تقدّمهما من تبويب المتابعة.
+                  اختر مادة أخرى، أو حدّث الدروس المنتهية من تبويب المتابعة.
                 </p>
               </div>
             )}
             <button
               onClick={handleCreate}
-              disabled={!p1 || !p2 || creating || blockers.length > 0}
+              disabled={!p1 || !p2 || creating || blocked}
               className="w-full bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow disabled:opacity-50"
             >
               {creating ? "جارٍ الإنشاء..." : "إنشاء المسابقة ⚡"}
@@ -382,13 +412,13 @@ function SupervisorBattleRoom({
     return () => { supabase.removeChannel(ch); };
   }, [battle.id, send, handleVerdict]);
 
-  const startBlockers = [cfg.p1, cfg.p2].filter(
-    (u) => unfinishedInScope(db.progress, u, cfg.subject, cfg.unit, cfg.lesson).length > 0,
-  );
+  const players = [cfg.p1, cfg.p2];
+  const startBlockers = battleBlockers(db.progress, players, cfg.subject, cfg.unit, cfg.lesson);
 
   const startBattle = () => {
     if (startBlockers.length > 0) return;
-    const qs = getQuestionsByScope(cfg.subject, cfg.unit, cfg.lesson, cfg.totalRounds).map((q) => ({
+    const lessons = battleLessons(db.progress, players, cfg.subject, cfg.unit, cfg.lesson);
+    const qs = getQuestionsFromLessons(cfg.subject, lessons, cfg.totalRounds).map((q) => ({
       id: q.id, q: q.q, options: q.options, correct: q.correct, unit: q.unit,
     }));
     setQuestions(qs);
@@ -822,8 +852,8 @@ function StudentCard({ username, index }: { username: string; index: number }) {
       </div>
 
       <div className="mt-5">
-        <p className="text-xs text-muted-foreground mb-2">📍 آخر درس أنهاه في كل مادة</p>
-        <LessonProgressEditor username={username} compact />
+        <p className="text-xs text-muted-foreground mb-2">📍 الدروس التي أنهاها (اضغط على المادة للتعديل)</p>
+        <LessonProgressEditor username={username} />
       </div>
 
       {subjects.length > 0 && (

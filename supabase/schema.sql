@@ -75,13 +75,15 @@ grant all on study_sessions to anon;
 grant all on quiz_results  to anon;
 grant all on challenges    to anon;
 
--- آخر درس أنهاه كل طالب في كل مادة
+-- الدروس التي أنهاها كل طالب (صف لكل درس؛ وحدة ودرس فارغان = "لم أبدأ المادة")
 create table if not exists student_progress (
   owner_username text   not null references profiles(username) on delete cascade,
   subject        text   not null,
   unit           text   not null,
   lesson         text   not null,
   updated_at     bigint not null default (extract(epoch from now()) * 1000)::bigint,
-  primary key (owner_username, subject)
+  primary key (owner_username, subject, unit, lesson)
 );
+alter table student_progress enable row level security;
+create policy "open access" on student_progress for all to anon using (true) with check (true);
 grant all on student_progress to anon;

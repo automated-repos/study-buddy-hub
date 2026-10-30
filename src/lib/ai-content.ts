@@ -635,6 +635,18 @@ export function getQuestionsByScope(subject: string, unit?: string, lesson?: str
   return shuffle(getQuestionPool(subject, unit, lesson)).slice(0, count);
 }
 
+/** Random questions from a specific list of lessons. */
+export function getQuestionsFromLessons(
+  subject: string,
+  lessons: { unit: string; lesson: string }[],
+  count = 5,
+): AIQuestion[] {
+  const pool = ALL_QUESTIONS.filter(
+    (q) => q.subject === subject && lessons.some((l) => l.unit === q.unit && l.lesson === q.lesson),
+  );
+  return shuffle(pool).slice(0, count);
+}
+
 // backward-compatible wrapper
 export function getQuestionsFor(subjectName: string, unit?: string, count = 5): AIQuestion[] {
   if (unit) return getQuestionsForUnit(subjectName, unit, count);
