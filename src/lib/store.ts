@@ -258,6 +258,10 @@ export async function loginOrCreate(
       created_at: Date.now(),
     });
     if (error) throw new Error(error.message);
+    if (role === "student") await seedStudentSubjects(u);
+  } else if (role === "student") {
+    // seed for existing students who never got subjects (migration)
+    await seedStudentSubjects(u);
   }
 
   setCurrentUsername(u);
@@ -276,6 +280,35 @@ export async function updateAvatar(username: string, avatar: string) {
 }
 
 // ============== Subjects ==============
+
+export const DEFAULT_SUBJECTS: { name: string; totalChapters: number; color: string }[] = [
+  { name: "إنجليزي", totalChapters: 24, color: "#6366f1" },
+  { name: "إحصاء",   totalChapters: 13, color: "#f59e0b" },
+  { name: "عربي",    totalChapters: 16, color: "#10b981" },
+  { name: "تاريخ",   totalChapters: 8,  color: "#ef4444" },
+  { name: "جغرافيا", totalChapters: 14, color: "#3b82f6" },
+];
+
+export async function seedStudentSubjects(username: string): Promise<void> {
+  const { data: existing } = await supabase
+    .from("subjects")
+    .select("id")
+    .eq("owner_username", username);
+  if (existing && existing.length > 0) return;
+  const rows = DEFAULT_SUBJECTS.map((s) => ({
+    id: uid(),
+    owner_username: username,
+    name: s.name,
+    total_chapters: s.totalChapters,
+    done_chapters: 0,
+    color: s.color,
+    target_exam_date: null,
+    book_path: null,
+  }));
+  await supabase.from("subjects").insert(rows);
+  await invalidate();
+}
+
 export async function addSubject(input: Omit<Subject, "id" | "doneChapters">) {
   const { error } = await supabase.from("subjects").insert({
     id: uid(),
@@ -476,6 +509,63 @@ export function minutesToday(username: string, db: Pick<DB, "sessions">) {
   return db.sessions
     .filter((s) => s.ownerUsername === username && s.date === today)
     .reduce((a, b) => a + b.minutes, 0);
+}
+
+// ============== Live Battles ==============
+
+export function isLiveBattle(c: Challenge): boolean {
+  return c.title.startsWith("[LIVE]");
+}
+
+export interface LiveBattleConfig {
+  subject: string;
+  /** Optional: limit questions to one unit / lesson. Missing = whole subject / unit. */
+  unit?: string;
+  lesson?: string;
+  p1: string;
+  p2: string;
+  totalRounds: number;
+}
+
+export function parseLiveBattleConfig(c: Challenge): LiveBattleConfig | null {
+  try {
+    if (!c.title.startsWith("[LIVE]")) return null;
+    return JSON.parse(c.title.slice(6));
+  } catch {
+    return null;
+  }
+}
+
+export async function createLiveBattle(opts: {
+  supervisorUsername: string;
+  p1: string;
+  p2: string;
+  subject: string;
+  unit?: string;
+  lesson?: string;
+  totalRounds: number;
+}): Promise<string> {
+  const cfg: LiveBattleConfig = {
+    subject: opts.subject,
+    ...(opts.unit ? { unit: opts.unit } : {}),
+    ...(opts.lesson ? { lesson: opts.lesson } : {}),
+    p1: opts.p1,
+    p2: opts.p2,
+    totalRounds: opts.totalRounds,
+  };
+  const id = uid();
+  const { error } = await supabase.from("challenges").insert({
+    id,
+    from_username: opts.supervisorUsername,
+    to_username: opts.p1,
+    subject_id: null,
+    title: "[LIVE]" + JSON.stringify(cfg),
+    status: "pending",
+    created_at: Date.now(),
+  });
+  if (error) throw new Error(error.message);
+  await invalidate();
+  return id;
 }
 
 // ============== Challenges ==============

@@ -31,3 +31,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Local textbook PDFs (large, not used by the app)
+public/books/
