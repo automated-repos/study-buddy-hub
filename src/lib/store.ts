@@ -83,9 +83,11 @@ interface DB {
   challenges: Challenge[];
   progress: LessonProgress[];
   currentUsername: string | null;
+  /** false until the first fetch from Supabase finishes */
+  loaded: boolean;
 }
 
-const initial: Omit<DB, "currentUsername"> = {
+const initial: Omit<DB, "currentUsername" | "loaded"> = {
   profiles: [],
   subjects: [],
   books: [],
@@ -228,7 +230,7 @@ export function useDB(): DB {
     queryKey: DB_QUERY_KEY,
     queryFn: fetchAll,
   });
-  return { ...(data ?? initial), currentUsername };
+  return { ...(data ?? initial), currentUsername, loaded: !!data };
 }
 
 export function useCurrentProfile(): Profile | null {
@@ -628,28 +630,25 @@ export async function setChallengeStatus(
 }
 
 // ============== Lesson progress ==============
-/** Save the last lesson a student finished in a subject. Pass lesson = null to clear it. */
+/**
+ * Save the last lesson a student finished in a subject.
+ * pos = null means "not started yet" — saved as an empty unit/lesson so we know the student answered.
+ */
 export async function setLessonProgress(
   username: string,
   subject: string,
   pos: { unit: string; lesson: string } | null,
 ) {
-  const { error } = pos
-    ? await supabase.from("student_progress").upsert(
-        {
-          owner_username: username,
-          subject,
-          unit: pos.unit,
-          lesson: pos.lesson,
-          updated_at: Date.now(),
-        },
-        { onConflict: "owner_username,subject" },
-      )
-    : await supabase
-        .from("student_progress")
-        .delete()
-        .eq("owner_username", username)
-        .eq("subject", subject);
+  const { error } = await supabase.from("student_progress").upsert(
+    {
+      owner_username: username,
+      subject,
+      unit: pos?.unit ?? "",
+      lesson: pos?.lesson ?? "",
+      updated_at: Date.now(),
+    },
+    { onConflict: "owner_username,subject" },
+  );
   if (error) throw new Error(error.message);
   await invalidate();
 }

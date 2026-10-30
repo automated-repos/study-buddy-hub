@@ -3,6 +3,8 @@ import { SUBJECTS } from "@/lib/ai-content";
 import { finishedIndex, lessonSequence } from "@/lib/progress";
 import { setLessonProgress, useDB } from "@/lib/store";
 
+const NOT_STARTED = "none";
+
 /** Per-subject "last finished lesson" pickers for one student. */
 export function LessonProgressEditor({
   username,
@@ -20,7 +22,7 @@ export function LessonProgressEditor({
     setError("");
     try {
       const seq = lessonSequence(subject);
-      await setLessonProgress(username, subject, value === "" ? null : seq[Number(value)]);
+      await setLessonProgress(username, subject, value === NOT_STARTED ? null : seq[Number(value)]);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -33,10 +35,16 @@ export function LessonProgressEditor({
       {SUBJECTS.map((subject) => {
         const seq = lessonSequence(subject);
         const idx = finishedIndex(db.progress, username, subject);
+        const answered = db.progress.some(
+          (x) => x.ownerUsername === username && x.subject === subject,
+        );
         const pct = Math.round(((idx + 1) / seq.length) * 100);
         const units = [...new Set(seq.map((l) => l.unit))];
         return (
-          <div key={subject} className={compact ? "" : "glass rounded-2xl p-3"}>
+          <div
+            key={subject}
+            className={`${compact ? "" : "glass rounded-2xl p-3"} ${answered ? "" : "ring-2 ring-warning/60 rounded-2xl"}`}
+          >
             <div className="flex justify-between text-xs mb-1">
               <span className="font-semibold">{subject}</span>
               <span className="text-muted-foreground">
@@ -44,12 +52,17 @@ export function LessonProgressEditor({
               </span>
             </div>
             <select
-              value={idx >= 0 ? String(idx) : ""}
+              value={idx >= 0 ? String(idx) : answered ? NOT_STARTED : ""}
               disabled={saving === subject}
               onChange={(e) => void save(subject, e.target.value)}
               className="w-full bg-input rounded-xl px-3 py-2 text-sm outline-none disabled:opacity-50"
             >
-              <option value="">لم يبدأ بعد</option>
+              {!answered && (
+                <option value="" disabled>
+                  — اختر آخر درس أنهيته —
+                </option>
+              )}
+              <option value={NOT_STARTED}>لم أبدأ هذه المادة بعد</option>
               {units.map((u) => (
                 <optgroup key={u} label={u}>
                   {seq.map((l, i) =>

@@ -1,4 +1,4 @@
-import { ALL_QUESTIONS } from "./ai-content";
+import { ALL_QUESTIONS, SUBJECTS } from "./ai-content";
 import type { LessonProgress } from "./store";
 
 export interface LessonRef {
@@ -29,6 +29,13 @@ export function finishedIndex(
   const p = progress.find((x) => x.ownerUsername === username && x.subject === subject);
   if (!p) return -1;
   return lessonSequence(subject).findIndex((l) => l.unit === p.unit && l.lesson === p.lesson);
+}
+
+/** Subjects where the student hasn't said yet how far they got (not even "not started"). */
+export function subjectsMissingProgress(progress: LessonProgress[], username: string): string[] {
+  return SUBJECTS.filter(
+    (subject) => !progress.some((x) => x.ownerUsername === username && x.subject === subject),
+  );
 }
 
 /** Lessons covered by a scope: whole subject, one unit, or one lesson. */

@@ -25,6 +25,7 @@ import {
 import { getQuestionsByScope, getSummariesFor, SUBJECTS, type AIQuestion } from "@/lib/ai-content";
 import { ScopePicker } from "@/components/ScopePicker";
 import { LessonProgressEditor } from "@/components/LessonProgressEditor";
+import { subjectsMissingProgress } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 import type { BMsg, WireQ } from "./supervisor";
 
@@ -37,6 +38,14 @@ type TabKey = "today" | "subjects" | "quiz" | "summaries" | "books" | "ranking" 
 
 function StudentPage() {
   const [tab, setTab] = useState<TabKey>("today");
+  const profile = useCurrentProfile();
+  const db = useDB();
+  // subjects where the student hasn't said yet how far they got
+  const missing =
+    db.loaded && profile?.role === "student"
+      ? subjectsMissingProgress(db.progress, profile.username)
+      : [];
+
   return (
     <AppShell
       tabs={
@@ -68,7 +77,7 @@ function StudentPage() {
           transition={{ duration: 0.2 }}
         >
           {tab === "today" && <TodayView />}
-          {tab === "subjects" && <SubjectsView />}
+          {tab === "subjects" && <SubjectsView missing={missing} />}
           {tab === "quiz" && <QuizView />}
           {tab === "summaries" && <SummariesView />}
           {tab === "books" && <BooksView />}
@@ -76,7 +85,40 @@ function StudentPage() {
           {tab === "challenges" && <ChallengesView />}
         </motion.div>
       </AnimatePresence>
+      {missing.length > 0 && tab !== "subjects" && (
+        <RequiredProgressModal missing={missing} onGo={() => setTab("subjects")} />
+      )}
     </AppShell>
+  );
+}
+
+// Shown on every tab except "المواد" until the student has set their progress in every subject.
+function RequiredProgressModal({ missing, onGo }: { missing: string[]; onGo: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        role="dialog"
+        aria-modal="true"
+        className="bg-card-gradient rounded-3xl p-6 border border-border shadow-soft w-full max-w-md text-center"
+      >
+        <div className="text-5xl mb-2">📍</div>
+        <h2 className="text-xl font-bold">قبل أن تبدأ: وصلت لأي درس؟</h2>
+        <p className="text-sm text-muted-foreground mt-2">
+          يجب تحديد آخر درس أنهيته في كل مادة من تبويب "المواد" قبل متابعة استخدام التطبيق.
+        </p>
+        <p className="text-sm mt-3">
+          المواد المتبقية: <span className="font-bold text-warning">{missing.join("، ")}</span>
+        </p>
+        <button
+          onClick={onGo}
+          className="mt-5 w-full bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow"
+        >
+          اذهب إلى المواد 📘
+        </button>
+      </motion.div>
+    </div>
   );
 }
 
@@ -221,7 +263,7 @@ function EmptyState({ icon, title, desc }: { icon: string; title: string; desc: 
 }
 
 // ============== SUBJECTS ==============
-function SubjectsView() {
+function SubjectsView({ missing }: { missing: string[] }) {
   const profile = useCurrentProfile()!;
   const db = useDB();
   const subjects = db.subjects.filter((s) => s.ownerUsername === profile.username);
@@ -237,6 +279,12 @@ function SubjectsView() {
     <div className="space-y-6">
       <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">
         <h3 className="font-bold text-lg">📍 وصلت لأي درس؟</h3>
+        {missing.length > 0 && (
+          <p className="mt-2 rounded-xl bg-warning/15 text-warning text-sm font-semibold px-3 py-2">
+            ⚠️ حدّد آخر درس أنهيته في: {missing.join("، ")} — لن تستطيع استخدام باقي التطبيق قبل
+            ذلك.
+          </p>
+        )}
         <p className="text-xs text-muted-foreground mt-0.5 mb-3">
           اختر آخر درس أنهيته في كل مادة — المسابقات تكون فقط في الدروس التي أنهيتها.
         </p>
