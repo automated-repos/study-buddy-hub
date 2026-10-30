@@ -439,9 +439,12 @@ export async function uploadBook(
   });
 }
 
-export function getBookUrl(filePath: string): string {
-  const { data } = supabase.storage.from("books").getPublicUrl(filePath);
-  return data.publicUrl;
+export async function getBookUrl(filePath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from("books")
+    .createSignedUrl(filePath, 60 * 60);
+  if (error || !data) throw new Error(error?.message ?? "تعذر توليد رابط الكتاب");
+  return data.signedUrl;
 }
 
 // ============== Points & Stats ==============
