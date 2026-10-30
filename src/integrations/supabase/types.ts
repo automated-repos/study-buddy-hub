@@ -14,7 +14,248 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      books: {
+        Row: {
+          added_at: number
+          file_name: string
+          file_path: string | null
+          id: string
+          owner_username: string
+          size_kb: number
+          subject_id: string
+          title: string
+        }
+        Insert: {
+          added_at?: number
+          file_name: string
+          file_path?: string | null
+          id: string
+          owner_username: string
+          size_kb?: number
+          subject_id: string
+          title: string
+        }
+        Update: {
+          added_at?: number
+          file_name?: string
+          file_path?: string | null
+          id?: string
+          owner_username?: string
+          size_kb?: number
+          subject_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "books_owner_username_fkey"
+            columns: ["owner_username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+          {
+            foreignKeyName: "books_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          created_at: number
+          from_username: string
+          id: string
+          status: string
+          subject_id: string | null
+          title: string
+          to_username: string
+          winner: string | null
+        }
+        Insert: {
+          created_at?: number
+          from_username: string
+          id: string
+          status?: string
+          subject_id?: string | null
+          title: string
+          to_username: string
+          winner?: string | null
+        }
+        Update: {
+          created_at?: number
+          from_username?: string
+          id?: string
+          status?: string
+          subject_id?: string | null
+          title?: string
+          to_username?: string
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_from_username_fkey"
+            columns: ["from_username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+          {
+            foreignKeyName: "challenges_to_username_fkey"
+            columns: ["to_username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar: string
+          created_at: number
+          display_name: string
+          role: string
+          username: string
+        }
+        Insert: {
+          avatar?: string
+          created_at?: number
+          display_name: string
+          role: string
+          username: string
+        }
+        Update: {
+          avatar?: string
+          created_at?: number
+          display_name?: string
+          role?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      quiz_results: {
+        Row: {
+          id: string
+          owner_username: string
+          score: number
+          subject_id: string
+          taken_at: number
+          total: number
+        }
+        Insert: {
+          id: string
+          owner_username: string
+          score: number
+          subject_id: string
+          taken_at?: number
+          total: number
+        }
+        Update: {
+          id?: string
+          owner_username?: string
+          score?: number
+          subject_id?: string
+          taken_at?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_results_owner_username_fkey"
+            columns: ["owner_username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+          {
+            foreignKeyName: "quiz_results_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_sessions: {
+        Row: {
+          date: string
+          id: string
+          minutes: number
+          note: string | null
+          owner_username: string
+          subject_id: string
+        }
+        Insert: {
+          date: string
+          id: string
+          minutes: number
+          note?: string | null
+          owner_username: string
+          subject_id: string
+        }
+        Update: {
+          date?: string
+          id?: string
+          minutes?: number
+          note?: string | null
+          owner_username?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_sessions_owner_username_fkey"
+            columns: ["owner_username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+          {
+            foreignKeyName: "study_sessions_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          color: string
+          done_chapters: number
+          id: string
+          name: string
+          owner_username: string
+          target_exam_date: string | null
+          total_chapters: number
+        }
+        Insert: {
+          color?: string
+          done_chapters?: number
+          id: string
+          name: string
+          owner_username: string
+          target_exam_date?: string | null
+          total_chapters?: number
+        }
+        Update: {
+          color?: string
+          done_chapters?: number
+          id?: string
+          name?: string
+          owner_username?: string
+          target_exam_date?: string | null
+          total_chapters?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subjects_owner_username_fkey"
+            columns: ["owner_username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
