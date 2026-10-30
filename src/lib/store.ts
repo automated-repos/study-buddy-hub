@@ -309,12 +309,20 @@ export async function setSubjectBook(subjectName: string, bookPath: string) {
 }
 
 export async function updateSubject(id: string, patch: Partial<Subject>) {
-  const dbPatch: Record<string, unknown> = {};
-  if (patch.name !== undefined) dbPatch.name = patch.name;
-  if (patch.totalChapters !== undefined) dbPatch.total_chapters = patch.totalChapters;
-  if (patch.doneChapters !== undefined) dbPatch.done_chapters = patch.doneChapters;
-  if (patch.color !== undefined) dbPatch.color = patch.color;
-  if (patch.targetExamDate !== undefined) dbPatch.target_exam_date = patch.targetExamDate;
+  const { data: current } = await supabase
+    .from("subjects")
+    .select("name, total_chapters, done_chapters, color, target_exam_date")
+    .eq("id", id)
+    .single();
+  if (!current) throw new Error("المادة غير موجودة");
+
+  const dbPatch = {
+    name: patch.name ?? current.name,
+    total_chapters: patch.totalChapters ?? current.total_chapters,
+    done_chapters: patch.doneChapters ?? current.done_chapters,
+    color: patch.color ?? current.color,
+    target_exam_date: patch.targetExamDate !== undefined ? patch.targetExamDate : current.target_exam_date,
+  };
 
   const { error } = await supabase.from("subjects").update(dbPatch).eq("id", id);
   if (error) throw new Error(error.message);
@@ -439,9 +447,12 @@ export async function uploadBook(
   });
 }
 
-export function getBookUrl(filePath: string): string {
-  const { data } = supabase.storage.from("books").getPublicUrl(filePath);
-  return data.publicUrl;
+export async function getBookUrl(filePath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from("books")
+    .createSignedUrl(filePath, 60 * 60);
+  if (error || !data) throw new Error(error?.message ?? "تعذر توليد رابط الكتاب");
+  return data.signedUrl;
 }
 
 // ============== Points & Stats ==============

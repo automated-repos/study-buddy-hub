@@ -3,11 +3,11 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { AppShell, Tab } from "@/components/AppShell";
+import { BookLink } from "@/components/BookLink";
 import {
   createChallenge,
   dailyPlan,
   deleteBook,
-  getBookUrl,
   logQuiz,
   logSession,
   minutesToday,
@@ -241,14 +241,12 @@ function SubjectsView() {
                     </div>
                   </div>
                   {s.bookPath && (
-                    <a
-                      href={getBookUrl(s.bookPath)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <BookLink
+                      path={s.bookPath}
                       className="text-xs bg-hero text-primary-foreground font-bold px-3 py-1.5 rounded-xl shadow-glow"
                     >
                       📄 الكتاب
-                    </a>
+                    </BookLink>
                   )}
                 </div>
                 <div className="h-2 bg-muted rounded-full mt-3 overflow-hidden">
@@ -503,14 +501,9 @@ function BooksView() {
                 </p>
                 <div className="flex gap-3 mt-3">
                   {b.filePath && (
-                    <a
-                      href={getBookUrl(b.filePath)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline"
-                    >
+                    <BookLink path={b.filePath} className="text-xs text-primary hover:underline">
                       فتح الكتاب
-                    </a>
+                    </BookLink>
                   )}
                   <button
                     onClick={() => void deleteBook(b.id)}
