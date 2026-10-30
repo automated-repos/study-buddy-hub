@@ -220,6 +220,7 @@ export type Database = {
       }
       subjects: {
         Row: {
+          book_path: string | null
           color: string
           done_chapters: number
           id: string
@@ -229,6 +230,7 @@ export type Database = {
           total_chapters: number
         }
         Insert: {
+          book_path?: string | null
           color?: string
           done_chapters?: number
           id: string
@@ -238,6 +240,7 @@ export type Database = {
           total_chapters?: number
         }
         Update: {
+          book_path?: string | null
           color?: string
           done_chapters?: number
           id?: string

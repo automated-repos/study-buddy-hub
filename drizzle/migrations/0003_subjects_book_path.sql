@@ -1,0 +1,1 @@
+alter table public.subjects add column if not exists book_path text;
