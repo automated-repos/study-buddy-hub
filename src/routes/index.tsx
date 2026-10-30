@@ -99,7 +99,12 @@ function Index() {
       );
       if (dbErr) throw new Error(dbErr.message);
       if (!existing) { setError("اسم المستخدم غير موجود"); return; }
-      await loginOrCreate(existing.username, existing.role, existing.display_name, existing.avatar);
+      await loginOrCreate(
+        existing.username,
+        existing.role as Role,
+        existing.display_name,
+        existing.avatar,
+      );
     } catch (e2) {
       setError((e2 as Error).message);
     } finally {
