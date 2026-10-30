@@ -51,7 +51,8 @@ export function suggestTasks(db: Pick<DB, "progress">, username: string) {
 
 function dayStats(tasks: StudyTask[], minutes: number) {
   const done = tasks.filter((t) => t.done).length;
-  const ratio = tasks.length ? done / tasks.length : minutes > 0 ? 1 : 0;
+  // with no tasks there is nothing to complete, so the day is never "100% done"
+  const ratio = tasks.length ? done / tasks.length : 0;
   return { done, total: tasks.length, ratio };
 }
 
@@ -82,7 +83,7 @@ export function ScheduleView({ onOpenTests }: { onOpenTests: () => void }) {
     .sort((a, b) => a.createdAt - b.createdAt);
   const dayMin = minutesByDay.get(selected) ?? 0;
   const stats = dayStats(dayTasks, dayMin);
-  const msg = dayMessage(stats.ratio, dayMin);
+  const msg = dayMessage(stats.ratio, dayMin, stats.total);
   const isPast = selected < today;
 
   const run = async (fn: () => Promise<void>) => {
@@ -276,6 +277,7 @@ export function ScheduleView({ onOpenTests }: { onOpenTests: () => void }) {
             const tasks = myTasks.filter((t) => t.date === key);
             const min = minutesByDay.get(key) ?? 0;
             if (!tasks.length && !min) return null;
+            if (!tasks.length) return "free"; // studied without a plan
             return dayStats(tasks, min).ratio;
           }}
         />
@@ -299,7 +301,8 @@ function Calendar({
   selected: string;
   setSelected: (k: string) => void;
   today: string;
-  score: (key: string) => number | null;
+  /** ratio of tasks done, "free" = studied with no tasks, null = nothing */
+  score: (key: string) => number | "free" | null;
 }) {
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
@@ -310,10 +313,12 @@ function Calendar({
       (_, i) => new Date(month.getFullYear(), month.getMonth(), i + 1),
     ),
   ];
-  const color = (s: number | null) =>
+  const color = (s: number | "free" | null) =>
     s === null
       ? ""
-      : s >= 1
+      : s === "free"
+        ? "bg-primary/35"
+        : s >= 1
         ? "bg-success/70"
         : s >= 0.6
           ? "bg-success/45"
@@ -375,6 +380,9 @@ function Calendar({
         </span>
         <span>
           <span className="inline-block size-3 rounded bg-destructive/30 align-middle" /> قليل
+        </span>
+        <span>
+          <span className="inline-block size-3 rounded bg-primary/35 align-middle" /> ذاكر بدون مهام
         </span>
       </div>
     </div>

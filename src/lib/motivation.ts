@@ -181,7 +181,20 @@ export const LOSE_QUOTES = [
 ];
 
 /** End-of-day message based on how much of today's plan was done. */
-export function dayMessage(doneRatio: number, minutes: number): { icon: string; text: string } {
+export function dayMessage(
+  doneRatio: number,
+  minutes: number,
+  totalTasks: number,
+): { icon: string; text: string } {
+  // no plan for the day: ask for tasks instead of praising an empty list
+  if (totalTasks === 0)
+    return {
+      icon: "📝",
+      text:
+        minutes > 0
+          ? `ذاكرت ${minutes} دقيقة 👏 لكن لا توجد مهام لهذا اليوم — أضف مهامك أو اضغط «اقترح لي خطة» لتتابع إنجازك.`
+          : "لا توجد مهام لهذا اليوم — أضف مهامك أو اضغط «اقترح لي خطة» لتبدأ يومك بخطة واضحة.",
+    };
   if (minutes === 0 && doneRatio === 0)
     return {
       icon: "🌅",
