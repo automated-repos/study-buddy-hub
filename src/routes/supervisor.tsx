@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { AppShell, Tab } from "@/components/AppShell";
+import { BookLink } from "@/components/BookLink";
 import {
   addSubject,
   deleteSubject,
-  getBookUrl,
   minutesToday,
   pointsFor,
   setSubjectBook,

@@ -3,11 +3,11 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { AppShell, Tab } from "@/components/AppShell";
+import { BookLink } from "@/components/BookLink";
 import {
   createChallenge,
   dailyPlan,
   deleteBook,
-  getBookUrl,
   logQuiz,
   logSession,
   minutesToday,
