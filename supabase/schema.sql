@@ -159,3 +159,18 @@ create table if not exists chat_messages (
 alter table chat_messages enable row level security;
 create policy "open access" on chat_messages for all to anon using (true) with check (true);
 grant all on chat_messages to anon;
+
+-- جلسات استخدام الموقع: متى دخل المستخدم، آخر نشاط، ومتى خرج أو أغلق الصفحة
+create table if not exists site_sessions (
+  id           text   primary key,
+  username     text   not null references profiles(username) on delete cascade,
+  started_at   bigint not null,
+  last_seen_at bigint not null,
+  ended_at     bigint,
+  end_reason   text   check (end_reason in ('logout', 'closed')),
+  device       text
+);
+create index if not exists site_sessions_user_started on site_sessions (username, started_at desc);
+alter table site_sessions enable row level security;
+create policy "open access" on site_sessions for all to anon using (true) with check (true);
+grant all on site_sessions to anon;

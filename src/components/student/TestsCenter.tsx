@@ -4,8 +4,9 @@ import { materialFor } from "@/lib/content";
 import { finishedLessons, isFinished, lessonSequence, type LessonRef } from "@/lib/progress";
 import { logReview, useCurrentProfile, useDB, type DB } from "@/lib/store";
 import { QuizRunner } from "./QuizRunner";
+import { MapQuiz } from "./MapQuiz";
 
-type Mode = "quick" | "comprehensive" | "biweekly" | "essay";
+type Mode = "quick" | "comprehensive" | "biweekly" | "essay" | "maps";
 
 export function TestsCenter({ quick }: { quick: ReactNode }) {
   const [mode, setMode] = useState<Mode>("quick");
@@ -18,6 +19,7 @@ export function TestsCenter({ quick }: { quick: ReactNode }) {
             ["comprehensive", "📝 اختبار شامل"],
             ["biweekly", "🔁 مراجعة كل أسبوعين"],
             ["essay", "✍️ أسئلة مقالية"],
+            ["maps", "🗺️ أسئلة الخرائط"],
           ] as [Mode, string][]
         ).map(([k, l]) => (
           <button
@@ -33,6 +35,7 @@ export function TestsCenter({ quick }: { quick: ReactNode }) {
       {mode === "comprehensive" && <Comprehensive />}
       {mode === "biweekly" && <Biweekly />}
       {mode === "essay" && <EssayPractice />}
+      {mode === "maps" && <MapQuiz />}
     </div>
   );
 }

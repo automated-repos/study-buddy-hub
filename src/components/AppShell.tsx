@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { logout, useCurrentProfile, streakFor, useDB } from "@/lib/store";
 import { levelFor, ratingFor, starsFor } from "@/lib/motivation";
 import { RatingStars } from "./Motivation";
+import { endSessionForLogout, useSiteSession } from "@/lib/siteSession";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 
@@ -9,6 +10,7 @@ export function AppShell({ children, tabs }: { children: ReactNode; tabs?: React
   const profile = useCurrentProfile();
   const db = useDB();
   const navigate = useNavigate();
+  useSiteSession(profile?.username);
 
   useEffect(() => {
     if (profile === null && typeof window !== "undefined") {
@@ -50,6 +52,7 @@ export function AppShell({ children, tabs }: { children: ReactNode; tabs?: React
           </div>
           <button
             onClick={() => {
+              endSessionForLogout();
               logout();
               navigate({ to: "/" });
             }}

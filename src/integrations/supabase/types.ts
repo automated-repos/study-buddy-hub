@@ -395,6 +395,44 @@ export type Database = {
         }
         Relationships: []
       }
+      site_sessions: {
+        Row: {
+          device: string | null
+          end_reason: string | null
+          ended_at: number | null
+          id: string
+          last_seen_at: number
+          started_at: number
+          username: string
+        }
+        Insert: {
+          device?: string | null
+          end_reason?: string | null
+          ended_at?: number | null
+          id: string
+          last_seen_at: number
+          started_at: number
+          username: string
+        }
+        Update: {
+          device?: string | null
+          end_reason?: string | null
+          ended_at?: number | null
+          id?: string
+          last_seen_at?: number
+          started_at?: number
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_sessions_username_fkey"
+            columns: ["username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
       student_progress: {
         Row: {
           lesson: string

@@ -3,10 +3,12 @@ import { SUBJECTS } from "@/lib/ai-content";
 import { materialFor, type LessonMaterial, type MapBranch } from "@/lib/content";
 import { finishedLessons, isFinished, lessonSequence, unitsOf } from "@/lib/progress";
 import { useCurrentProfile, useDB } from "@/lib/store";
+import { mapQuestionsFor } from "@/lib/mapQuestions";
+import { LessonMaps } from "./MapQuiz";
 
 const BRANCH_COLORS = ["#60a5fa", "#f472b6", "#34d399", "#fbbf24", "#a78bfa", "#fb7185"];
 
-type View = "summary" | "table" | "map";
+type View = "summary" | "table" | "map" | "geo";
 
 /** Summaries tab: per lesson summary, comparison table and mind map. */
 export function StudyMaterial() {
@@ -37,6 +39,9 @@ export function StudyMaterial() {
                 ["summary", "📋 الملخص"],
                 ["table", "📊 جداول ومقارنات"],
                 ["map", "🧠 خريطة ذهنية"],
+                ...(mapQuestionsFor(subject, lesson).length
+                  ? ([["geo", "🗺️ خرائط"]] as [View, string][])
+                  : []),
               ] as [View, string][]
             ).map(([k, l]) => (
               <button
@@ -52,6 +57,7 @@ export function StudyMaterial() {
         {view === "summary" && <SummaryBlock m={m} />}
         {view === "table" && <TableBlock m={m} />}
         {view === "map" && <MindMap m={m} />}
+        {view === "geo" && <LessonMaps subject={subject} lesson={lesson} />}
       </div>
     );
   }

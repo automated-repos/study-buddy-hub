@@ -23,6 +23,7 @@ import { SUBJECTS, getQuestionsFromLessons } from "@/lib/ai-content";
 import { LessonProgressEditor } from "@/components/LessonProgressEditor";
 import { QuestionBank } from "@/components/QuestionBank";
 import { SummaryEditor } from "@/components/SummaryEditor";
+import { SessionsView } from "@/components/SessionsView";
 import { LiveRoomViewer } from "@/components/student/PomodoroRoom";
 import { LiveChat } from "@/components/LiveChat";
 import { AchievementsCard } from "@/components/Motivation";
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/supervisor")({
   component: SupervisorPage,
 });
 
-type TabKey = "overview" | "subjects" | "battles" | "questions" | "summaries";
+type TabKey = "overview" | "sessions" | "subjects" | "battles" | "questions" | "summaries";
 
 const COLORS = ["#f472b6", "#60a5fa", "#34d399", "#fbbf24", "#a78bfa", "#fb7185", "#22d3ee", "#facc15"];
 
@@ -65,6 +66,7 @@ function SupervisorPage() {
       tabs={
         <>
           <Tab active={tab === "overview"} onClick={() => setTab("overview")}>📊 المتابعة</Tab>
+          <Tab active={tab === "sessions"} onClick={() => setTab("sessions")}>🕒 الجلسات</Tab>
           <Tab active={tab === "subjects"} onClick={() => setTab("subjects")}>📘 إدارة المواد</Tab>
           <Tab active={tab === "battles"} onClick={() => setTab("battles")}>⚔️ مسابقات حية</Tab>
           <Tab active={tab === "questions"} onClick={() => setTab("questions")}>📝 بنك الأسئلة</Tab>
@@ -76,6 +78,7 @@ function SupervisorPage() {
       {tab === "subjects" && <SubjectsTab />}
       {tab === "battles" && <BattlesTab />}
       {tab === "questions" && <QuestionBank />}
+      {tab === "sessions" && <SessionsView />}
       {tab === "summaries" && <SummaryEditor />}
     </AppShell>
   );
