@@ -21,6 +21,7 @@ import {
 } from "@/lib/store";
 import { SUBJECTS, getQuestionsFromLessons } from "@/lib/ai-content";
 import { LessonProgressEditor } from "@/components/LessonProgressEditor";
+import { QuestionBank } from "@/components/QuestionBank";
 import { battleBlockers, battleLessons, commonFullUnits, commonLessons, unitsOf } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/supervisor")({
   component: SupervisorPage,
 });
 
-type TabKey = "overview" | "subjects" | "battles";
+type TabKey = "overview" | "subjects" | "battles" | "questions";
 
 const COLORS = ["#f472b6", "#60a5fa", "#34d399", "#fbbf24", "#a78bfa", "#fb7185", "#22d3ee", "#facc15"];
 
@@ -61,12 +62,14 @@ function SupervisorPage() {
           <Tab active={tab === "overview"} onClick={() => setTab("overview")}>📊 المتابعة</Tab>
           <Tab active={tab === "subjects"} onClick={() => setTab("subjects")}>📘 إدارة المواد</Tab>
           <Tab active={tab === "battles"} onClick={() => setTab("battles")}>⚔️ مسابقات حية</Tab>
+          <Tab active={tab === "questions"} onClick={() => setTab("questions")}>📝 بنك الأسئلة</Tab>
         </>
       }
     >
       {tab === "overview" && <OverviewTab />}
       {tab === "subjects" && <SubjectsTab />}
       {tab === "battles" && <BattlesTab />}
+      {tab === "questions" && <QuestionBank />}
     </AppShell>
   );
 }
@@ -99,6 +102,22 @@ function OverviewTab() {
       )}
     </div>
   );
+}
+
+// Questions already used in battles on this device, so new battles prefer unseen ones.
+const USED_KEY = "mozakara_used_battle_questions";
+function usedBattleQuestions(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(USED_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+}
+function rememberBattleQuestions(ids: string[]) {
+  const fresh = new Set(ids);
+  const all = [...[...usedBattleQuestions()].filter((id) => !fresh.has(id)), ...ids];
+  // keep the most recent 600 so old questions come back eventually
+  localStorage.setItem(USED_KEY, JSON.stringify(all.slice(-600)));
 }
 
 // ── Battles tab ───────────────────────────────────────────────────────────────
@@ -418,7 +437,9 @@ function SupervisorBattleRoom({
   const startBattle = () => {
     if (startBlockers.length > 0) return;
     const lessons = battleLessons(db.progress, players, cfg.subject, cfg.unit, cfg.lesson);
-    const qs = getQuestionsFromLessons(cfg.subject, lessons, cfg.totalRounds).map((q) => ({
+    const picked = getQuestionsFromLessons(cfg.subject, lessons, cfg.totalRounds, usedBattleQuestions());
+    rememberBattleQuestions(picked.map((q) => q.id));
+    const qs = picked.map((q) => ({
       id: q.id, q: q.q, options: q.options, correct: q.correct, unit: q.unit,
     }));
     setQuestions(qs);

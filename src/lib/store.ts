@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "./supabase";
 import { queryClient } from "./queryClient";
+import { setQuestionEdits, type QuestionEdit } from "./ai-content";
 
 // ============== Types ==============
 export type Role = "student" | "supervisor";
@@ -82,6 +83,7 @@ interface DB {
   quizzes: QuizResult[];
   challenges: Challenge[];
   progress: LessonProgress[];
+  questionEdits: QuestionEdit[];
   currentUsername: string | null;
   /** false until the first fetch from Supabase finishes */
   loaded: boolean;
@@ -95,6 +97,7 @@ const initial: Omit<DB, "currentUsername" | "loaded"> = {
   quizzes: [],
   challenges: [],
   progress: [],
+  questionEdits: [],
 };
 
 // ============== Session (localStorage — only the username string) ==============
@@ -192,7 +195,7 @@ function mapChallenge(r: any): Challenge {
 export const DB_QUERY_KEY = ["db"] as const;
 
 async function fetchAll() {
-  const [profiles, subjects, books, sessions, quizzes, challenges, progress] = await Promise.all([
+  const [profiles, subjects, books, sessions, quizzes, challenges, progress, customQs] = await Promise.all([
     supabase.from("profiles").select("*"),
     supabase.from("subjects").select("*"),
     supabase.from("books").select("*"),
@@ -200,8 +203,23 @@ async function fetchAll() {
     supabase.from("quiz_results").select("*"),
     supabase.from("challenges").select("*"),
     supabase.from("student_progress").select("*"),
+    supabase.from("custom_questions").select("*"),
   ]);
+  // empty if the custom_questions migration hasn't been applied yet
+  const questionEdits: QuestionEdit[] = (customQs.data ?? []).map((r) => ({
+    id: r.id,
+    subject: r.subject,
+    unit: r.unit,
+    lesson: r.lesson,
+    q: r.q,
+    options: Array.isArray(r.options) ? (r.options as string[]) : [],
+    correct: r.correct,
+    difficulty: (r.difficulty as QuestionEdit["difficulty"]) ?? "medium",
+    hidden: r.hidden,
+  }));
+  setQuestionEdits(questionEdits);
   return {
+    questionEdits,
     profiles: (profiles.data ?? []).map(mapProfile),
     subjects: (subjects.data ?? []).map(mapSubject),
     books: (books.data ?? []).map(mapBook),
@@ -684,6 +702,57 @@ export async function setSubjectNotStarted(username: string, subject: string) {
     lesson: "",
     updated_at: Date.now(),
   });
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+// ============== Question bank (supervisor edits) ==============
+/** Add a new question, or save an edited version of an existing one (same id = replace). */
+export async function saveQuestion(
+  q: Omit<QuestionEdit, "hidden">,
+  by: string,
+): Promise<void> {
+  const { error } = await supabase.from("custom_questions").upsert({
+    id: q.id,
+    subject: q.subject,
+    unit: q.unit,
+    lesson: q.lesson,
+    q: q.q,
+    options: q.options,
+    correct: q.correct,
+    difficulty: q.difficulty,
+    hidden: false,
+    updated_by: by,
+    updated_at: Date.now(),
+  });
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+/** Delete a question: built-in ones are hidden (restorable), added ones are removed. */
+export async function deleteQuestion(q: Omit<QuestionEdit, "hidden">, builtIn: boolean, by: string) {
+  const { error } = builtIn
+    ? await supabase.from("custom_questions").upsert({
+        id: q.id,
+        subject: q.subject,
+        unit: q.unit,
+        lesson: q.lesson,
+        q: q.q,
+        options: q.options,
+        correct: q.correct,
+        difficulty: q.difficulty,
+        hidden: true,
+        updated_by: by,
+        updated_at: Date.now(),
+      })
+    : await supabase.from("custom_questions").delete().eq("id", q.id);
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+/** Undo edits to a built-in question (restores it if hidden, reverts the text if edited). */
+export async function restoreQuestion(id: string) {
+  const { error } = await supabase.from("custom_questions").delete().eq("id", id);
   if (error) throw new Error(error.message);
   await invalidate();
 }

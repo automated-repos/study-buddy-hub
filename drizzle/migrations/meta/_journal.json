@@ -43,6 +43,13 @@
       "when": 1793380335818,
       "tag": "0005_progress_per_lesson",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793380395818,
+      "tag": "0006_custom_questions",
+      "breakpoints": true
     }
   ]
 }

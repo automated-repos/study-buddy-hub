@@ -218,6 +218,48 @@ export type Database = {
           },
         ]
       }
+      custom_questions: {
+        Row: {
+          correct: number
+          difficulty: string
+          hidden: boolean
+          id: string
+          lesson: string
+          options: Json
+          q: string
+          subject: string
+          unit: string
+          updated_at: number
+          updated_by: string | null
+        }
+        Insert: {
+          correct: number
+          difficulty?: string
+          hidden?: boolean
+          id: string
+          lesson: string
+          options: Json
+          q: string
+          subject: string
+          unit: string
+          updated_at?: number
+          updated_by?: string | null
+        }
+        Update: {
+          correct?: number
+          difficulty?: string
+          hidden?: boolean
+          id?: string
+          lesson?: string
+          options?: Json
+          q?: string
+          subject?: string
+          unit?: string
+          updated_at?: number
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       student_progress: {
         Row: {
           lesson: string

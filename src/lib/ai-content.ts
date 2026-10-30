@@ -1,3 +1,15 @@
+import type { ExtraLesson } from "./questions/types";
+import { EXTRA_EN } from "./questions/en";
+import { EXTRA_ST } from "./questions/st";
+import { EXTRA_AR } from "./questions/ar";
+import { EXTRA_HI } from "./questions/hi";
+import { EXTRA_GEO } from "./questions/geo";
+import { EXTRA_EN_2 } from "./questions/en2";
+import { EXTRA_ST_2 } from "./questions/st2";
+import { EXTRA_AR_2 } from "./questions/ar2";
+import { EXTRA_HI_2 } from "./questions/hi2";
+import { EXTRA_GEO_2 } from "./questions/geo2";
+
 // Comprehensive tagged question bank — Egyptian 3rd-year secondary 2025-2026
 // Each question carries subject/unit/lesson tags so it can be reused across:
 // lesson quiz → unit test → subject exam → random review → competition
@@ -26,7 +38,7 @@ export interface AISummary {
 // QUESTIONS
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const ALL_QUESTIONS: AIQuestion[] = [
+const BASE_QUESTIONS: AIQuestion[] = [
   // ═══════════════════════════════════════════════════════
   // ENGLISH — 6 units × 4 lessons
   // ═══════════════════════════════════════════════════════
@@ -389,7 +401,7 @@ export const ALL_QUESTIONS: AIQuestion[] = [
   { id: "hi-ch1-02", subject: "تاريخ", unit: "الفصل الأول: الحملة الفرنسية", lesson: "الحملة الفرنسية 1798-1801", q: "قائد الحملة الفرنسية على مصر:", options: ["نابليون بونابرت", "نيلسون", "كليبر", "مينو"], correct: 0, difficulty: "easy" },
   { id: "hi-ch1-03", subject: "تاريخ", unit: "الفصل الأول: الحملة الفرنسية", lesson: "الحملة الفرنسية 1798-1801", q: "أهم الآثار العلمية للحملة الفرنسية:", options: ["وصف مصر وحجر رشيد والمجمع العلمي", "بناء قناة السويس", "نشر التعليم الإلزامي", "إلغاء نظام المماليك فوراً"], correct: 0, difficulty: "medium" },
   { id: "hi-ch1-04", subject: "تاريخ", unit: "الفصل الأول: الحملة الفرنسية", lesson: "الحملة الفرنسية 1798-1801", q: "معركة أبي قير البحرية انتهت بـ:", options: ["انتصار الأسطول البريطاني بقيادة نيلسون", "انتصار الفرنسيين", "تعادل الطرفين", "انسحاب الطرفين"], correct: 0, difficulty: "medium" },
-  { id: "hi-ch1-05", subject: "تاريخ", unit: "الفصل الأول: الحملة الفرنسية", lesson: "الحملة الفرنسية 1798-1801", q: "انتهت الحملة الفرنسية بخروج الفرنسيين بموجب:", options: ["اتفاقية الإسكندرية 1801", "معاهدة باريس", "تدخل عثماني مباشر", "ثورة شعبية مصرية"], correct: 0, difficulty: "hard" },
+  { id: "hi-ch1-05", subject: "تاريخ", unit: "الفصل الأول: الحملة الفرنسية", lesson: "الحملة الفرنسية 1798-1801", q: "خرجت آخر القوات الفرنسية من مصر عام:", options: ["1801", "1798", "1799", "1805"], correct: 0, difficulty: "hard" },
 
   { id: "hi-ch2-01", subject: "تاريخ", unit: "الفصل الثاني: عصر محمد علي", lesson: "محمد علي وتحديث مصر", q: "تولى محمد علي حكم مصر عام:", options: ["1805", "1798", "1811", "1820"], correct: 0, difficulty: "easy" },
   { id: "hi-ch2-02", subject: "تاريخ", unit: "الفصل الثاني: عصر محمد علي", lesson: "محمد علي وتحديث مصر", q: "أبرز إصلاحاته العسكرية:", options: ["إنشاء الجيش النظامي بمساعدة فرنسية", "الاعتماد على الجيش العثماني", "إلغاء الجيش تماماً", "الاعتماد على المرتزقة"], correct: 0, difficulty: "medium" },
@@ -412,7 +424,7 @@ export const ALL_QUESTIONS: AIQuestion[] = [
   { id: "hi-ch5-01", subject: "تاريخ", unit: "الفصل الخامس: ثورة 1919", lesson: "ثورة 1919 وما بعدها", q: "اندلعت ثورة 1919 بسبب:", options: ["نفي سعد زغلول ورفاقه إلى مالطا", "اغتيال مصطفى كامل", "إعلان الحرب العالمية", "إلغاء الحماية"], correct: 0, difficulty: "easy" },
   { id: "hi-ch5-02", subject: "تاريخ", unit: "الفصل الخامس: ثورة 1919", lesson: "ثورة 1919 وما بعدها", q: "تصريح 28 فبراير 1922:", options: ["أعلن استقلال مصر مع أربعة تحفظات لصالح بريطانيا", "أعلن الجلاء التام", "منح مصر الحكم الذاتي الكامل", "ألغى الحماية دون قيود"], correct: 0, difficulty: "medium" },
   { id: "hi-ch5-03", subject: "تاريخ", unit: "الفصل الخامس: ثورة 1919", lesson: "ثورة 1919 وما بعدها", q: "مُيِّزت ثورة 1919 بأنها:", options: ["شارك فيها رجال ونساء ومسلمون وأقباط", "اقتصرت على الطلاب", "كانت عسكرية بحتة", "انطلقت من الريف فقط"], correct: 0, difficulty: "easy" },
-  { id: "hi-ch5-04", subject: "تاريخ", unit: "الفصل الخامس: ثورة 1919", lesson: "ثورة 1919 وما بعدها", q: "أُسِّس حزب الوفد 1919 برئاسة:", options: ["سعد زغلول", "مصطفى النحاس", "أحمد ماهر", "إسماعيل صدقي"], correct: 0, difficulty: "easy" },
+  { id: "hi-ch5-04", subject: "تاريخ", unit: "الفصل الخامس: ثورة 1919", lesson: "ثورة 1919 وما بعدها", q: "تشكّل الوفد المصري في نوفمبر 1918 برئاسة:", options: ["سعد زغلول", "مصطفى النحاس", "أحمد ماهر", "إسماعيل صدقي"], correct: 0, difficulty: "easy" },
   { id: "hi-ch5-05", subject: "تاريخ", unit: "الفصل الخامس: ثورة 1919", lesson: "ثورة 1919 وما بعدها", q: "أوصى تقرير ملنر 1921 بـ:", options: ["منح مصر استقلالاً مقيداً مع مصالح بريطانية", "الجلاء التام الفوري", "إعلان الجمهورية", "إلغاء الحماية دون قيود"], correct: 0, difficulty: "medium" },
 
   { id: "hi-ch6-01", subject: "تاريخ", unit: "الفصل السادس: مصر بين الحربين العالميتين", lesson: "مصر بين 1919 و1952", q: "صدر الدستور المصري الأول عام:", options: ["1923", "1919", "1936", "1952"], correct: 0, difficulty: "easy" },
@@ -422,7 +434,7 @@ export const ALL_QUESTIONS: AIQuestion[] = [
   { id: "hi-ch6-05", subject: "تاريخ", unit: "الفصل السادس: مصر بين الحربين العالميتين", lesson: "مصر بين 1919 و1952", q: "حرب فلسطين 1948 وأثرها:", options: ["كشفت فساد النظام وأشعلت روح الثورة", "حققت انتصاراً عسكرياً", "وحّدت الأحزاب المصرية", "أبعدت الجيش عن السياسة"], correct: 0, difficulty: "medium" },
 
   { id: "hi-ch7-01", subject: "تاريخ", unit: "الفصل السابع: ثورة يوليو 1952", lesson: "ثورة 23 يوليو 1952", q: "قامت ثورة يوليو 1952 بـ:", options: ["تنظيم الضباط الأحرار بقيادة نجيب وناصر", "حزب الوفد وحده", "الإخوان وحدهم", "الملك فاروق"], correct: 0, difficulty: "easy" },
-  { id: "hi-ch7-02", subject: "تاريخ", unit: "الفصل السابع: ثورة يوليو 1952", lesson: "ثورة 23 يوليو 1952", q: "قانون الإصلاح الزراعي 1952 حدّد الملكية الزراعية بـ:", options: ["200 فدان للأسرة الواحدة", "500 فدان", "100 فدان", "1000 فدان"], correct: 0, difficulty: "medium" },
+  { id: "hi-ch7-02", subject: "تاريخ", unit: "الفصل السابع: ثورة يوليو 1952", lesson: "ثورة 23 يوليو 1952", q: "قانون الإصلاح الزراعي 1952 حدّد الملكية الزراعية بـ:", options: ["200 فدان للفرد", "500 فدان", "100 فدان", "1000 فدان"], correct: 0, difficulty: "medium" },
   { id: "hi-ch7-03", subject: "تاريخ", unit: "الفصل السابع: ثورة يوليو 1952", lesson: "ثورة 23 يوليو 1952", q: "أمَّم عبد الناصر شركة قناة السويس عام:", options: ["1956", "1952", "1958", "1961"], correct: 0, difficulty: "easy" },
   { id: "hi-ch7-04", subject: "تاريخ", unit: "الفصل السابع: ثورة يوليو 1952", lesson: "ثورة 23 يوليو 1952", q: "نتيجة العدوان الثلاثي 1956:", options: ["انسحاب القوى المعتدية وانتصار مصر دبلوماسياً", "احتلال سيناء طويل الأمد", "هزيمة مصرية كاملة", "تنازل ناصر عن القناة"], correct: 0, difficulty: "medium" },
   { id: "hi-ch7-05", subject: "تاريخ", unit: "الفصل السابع: ثورة يوليو 1952", lesson: "ثورة 23 يوليو 1952", q: "السد العالي الافتتاح الرسمي كان في عهد:", options: ["السادات (1971) بعد أن بدأه ناصر", "محمد نجيب", "الملك فاروق", "السادات فقط دون علاقة بناصر"], correct: 0, difficulty: "hard" },
@@ -508,6 +520,39 @@ export const ALL_QUESTIONS: AIQuestion[] = [
   { id: "ge-u4-l3-03", subject: "جغرافيا", unit: "الوحدة الرابعة: مصر والعلاقات الدولية", lesson: "علاقات مصر الدولية", q: "العلاقات المصرية الروسية تشمل:", options: ["الطاقة النووية والسياحة والتجارة والأمن", "التحالف العسكري الرسمي فقط", "الاتحاد الاقتصادي الكامل", "التبعية السياسية"], correct: 0, difficulty: "medium" },
   { id: "ge-u4-l3-04", subject: "جغرافيا", unit: "الوحدة الرابعة: مصر والعلاقات الدولية", lesson: "علاقات مصر الدولية", q: "علاقة مصر بالاتحاد الأوروبي قائمة على:", options: ["الشراكة الأورومتوسطية والتجارة والاستثمار وقضايا الهجرة", "العضوية الكاملة في الاتحاد", "الاتحاد الجمركي فقط", "لا توجد علاقات رسمية"], correct: 0, difficulty: "hard" },
   { id: "ge-u4-l3-05", subject: "جغرافيا", unit: "الوحدة الرابعة: مصر والعلاقات الدولية", lesson: "علاقات مصر الدولية", q: "انتهاج مصر سياسة عدم الانحياز يعني:", options: ["الموازنة في علاقاتها بين القوى الكبرى وتنويع الشركاء", "الحياد التام عن أي تحالف", "الانضمام للكتلة الغربية فقط", "الانضمام للكتلة الشرقية فقط"], correct: 0, difficulty: "hard" },
+];
+
+// Extra questions live in ./questions/*.ts (10 more per lesson). Each is attached to an
+// existing lesson by name; a typo in a lesson name fails loudly instead of silently vanishing.
+const DIFFICULTY = { e: "easy", m: "medium", h: "hard" } as const;
+
+function expandExtra(lessons: ExtraLesson[]): AIQuestion[] {
+  const counter = new Map<string, number>(); // lesson → extra questions numbered so far
+  return lessons.flatMap(({ subject, lesson, rows }) => {
+    const base = BASE_QUESTIONS.find((q) => q.subject === subject && q.lesson === lesson);
+    if (!base) throw new Error(`Unknown lesson in extra questions: ${subject} / ${lesson}`);
+    const prefix = base.id.replace(/-\d+$/, "");
+    const start = counter.get(prefix) ?? 0;
+    counter.set(prefix, start + rows.length);
+    return rows.map(([q, right, w1, w2, w3, d], i) => ({
+      id: `${prefix}-x${String(start + i + 1).padStart(2, "0")}`,
+      subject,
+      unit: base.unit,
+      lesson,
+      q,
+      options: [right, w1, w2, w3],
+      correct: 0,
+      difficulty: DIFFICULTY[d],
+    }));
+  });
+}
+
+export const ALL_QUESTIONS: AIQuestion[] = [
+  ...BASE_QUESTIONS,
+  ...expandExtra([
+    ...EXTRA_EN, ...EXTRA_ST, ...EXTRA_AR, ...EXTRA_HI, ...EXTRA_GEO,
+    ...EXTRA_EN_2, ...EXTRA_ST_2, ...EXTRA_AR_2, ...EXTRA_HI_2, ...EXTRA_GEO_2,
+  ]),
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -599,40 +644,97 @@ export const ALL_SUMMARIES: AISummary[] = [
 // QUERY FUNCTIONS
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Supervisor edits (custom_questions table) ──
+// A row whose id matches a built-in question replaces it (or hides it when hidden = true);
+// any other row is a new question added by the supervisor.
+export interface QuestionEdit extends AIQuestion {
+  hidden: boolean;
+}
+
+let edits: QuestionEdit[] = [];
+let active: AIQuestion[] = ALL_QUESTIONS;
+
+/** Called by the store whenever custom_questions is (re)loaded. */
+export function setQuestionEdits(rows: QuestionEdit[]) {
+  edits = rows;
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const builtIn = ALL_QUESTIONS.flatMap((q) => {
+    const e = byId.get(q.id);
+    if (!e) return [q];
+    return e.hidden ? [] : [{ ...q, q: e.q, options: e.options, correct: e.correct, difficulty: e.difficulty }];
+  });
+  const builtInIds = new Set(ALL_QUESTIONS.map((q) => q.id));
+  const added = rows.filter((r) => !builtInIds.has(r.id) && !r.hidden);
+  active = [...builtIn, ...added];
+}
+
+/** Questions currently in use: built-in ones with supervisor edits applied, plus added ones. */
+export function activeQuestions(): AIQuestion[] {
+  return active;
+}
+
+export function isBuiltInQuestion(id: string): boolean {
+  return ALL_QUESTIONS.some((q) => q.id === id);
+}
+
+/** Built-in questions the supervisor deleted (so they can be restored). */
+export function hiddenBuiltInQuestions(subject: string, lesson: string): AIQuestion[] {
+  const hidden = new Set(edits.filter((e) => e.hidden).map((e) => e.id));
+  return ALL_QUESTIONS.filter((q) => hidden.has(q.id) && q.subject === subject && q.lesson === lesson);
+}
+
 function shuffle<T>(arr: T[]): T[] {
-  return [...arr].sort(() => Math.random() - 0.5);
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Same question with its answers in random order (the bank always stores the right answer first). */
+function shuffleOptions(q: AIQuestion): AIQuestion {
+  const order = shuffle(q.options.map((_, i) => i));
+  return { ...q, options: order.map((i) => q.options[i]), correct: order.indexOf(q.correct) };
+}
+
+/** Pick `count` random questions, preferring ones not in `avoid` (e.g. used in earlier battles). */
+function pick(pool: AIQuestion[], count: number, avoid?: Set<string>): AIQuestion[] {
+  const fresh = avoid ? pool.filter((q) => !avoid.has(q.id)) : pool;
+  const used = avoid ? pool.filter((q) => avoid.has(q.id)) : [];
+  return [...shuffle(fresh), ...shuffle(used)].slice(0, count).map(shuffleOptions);
 }
 
 export function getQuestionsForLesson(subject: string, unit: string, lesson: string, count = 5): AIQuestion[] {
-  const pool = ALL_QUESTIONS.filter(q => q.subject === subject && q.unit === unit && q.lesson === lesson);
-  return shuffle(pool).slice(0, count);
+  const pool = active.filter(q => q.subject === subject && q.unit === unit && q.lesson === lesson);
+  return pick(pool, count);
 }
 
 export function getQuestionsForUnit(subject: string, unit: string, count = 10): AIQuestion[] {
-  const pool = ALL_QUESTIONS.filter(q => q.subject === subject && q.unit === unit);
-  return shuffle(pool).slice(0, count);
+  const pool = active.filter(q => q.subject === subject && q.unit === unit);
+  return pick(pool, count);
 }
 
 export function getQuestionsForSubject(subject: string, count = 20): AIQuestion[] {
-  const pool = ALL_QUESTIONS.filter(q => q.subject === subject);
-  return shuffle(pool).slice(0, count);
+  const pool = active.filter(q => q.subject === subject);
+  return pick(pool, count);
 }
 
 export function getRandomQuestions(count = 10, subjects?: string[]): AIQuestion[] {
-  const pool = subjects ? ALL_QUESTIONS.filter(q => subjects.includes(q.subject)) : ALL_QUESTIONS;
-  return shuffle(pool).slice(0, count);
+  const pool = subjects ? active.filter(q => subjects.includes(q.subject)) : active;
+  return pick(pool, count);
 }
 
 /** All questions matching a subject, optionally narrowed to one unit and one lesson. */
 export function getQuestionPool(subject: string, unit?: string, lesson?: string): AIQuestion[] {
-  return ALL_QUESTIONS.filter(
+  return active.filter(
     (q) => q.subject === subject && (!unit || q.unit === unit) && (!lesson || q.lesson === lesson),
   );
 }
 
 /** Random questions from the chosen subject / unit / lesson. */
 export function getQuestionsByScope(subject: string, unit?: string, lesson?: string, count = 5): AIQuestion[] {
-  return shuffle(getQuestionPool(subject, unit, lesson)).slice(0, count);
+  return pick(getQuestionPool(subject, unit, lesson), count);
 }
 
 /** Random questions from a specific list of lessons. */
@@ -640,11 +742,12 @@ export function getQuestionsFromLessons(
   subject: string,
   lessons: { unit: string; lesson: string }[],
   count = 5,
+  avoid?: Set<string>,
 ): AIQuestion[] {
-  const pool = ALL_QUESTIONS.filter(
+  const pool = active.filter(
     (q) => q.subject === subject && lessons.some((l) => l.unit === q.unit && l.lesson === q.lesson),
   );
-  return shuffle(pool).slice(0, count);
+  return pick(pool, count, avoid);
 }
 
 // backward-compatible wrapper
