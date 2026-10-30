@@ -148,3 +148,14 @@ create policy "open access" on study_tasks      for all to anon using (true) wit
 create policy "open access" on reviews          for all to anon using (true) with check (true);
 create policy "open access" on custom_summaries for all to anon using (true) with check (true);
 grant all on study_tasks, reviews, custom_summaries to anon;
+
+-- شات صفحة المذاكرة اللايف (مرئي للجميع: الطلاب والمشرف)
+create table if not exists chat_messages (
+  id         text   primary key,
+  username   text   not null references profiles(username) on delete cascade,
+  text       text   not null check (char_length(text) between 1 and 500),
+  created_at bigint not null default (extract(epoch from now()) * 1000)::bigint
+);
+alter table chat_messages enable row level security;
+create policy "open access" on chat_messages for all to anon using (true) with check (true);
+grant all on chat_messages to anon;

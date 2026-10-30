@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { SUBJECTS } from "@/lib/ai-content";
-import { materialFor, type LessonMaterial } from "@/lib/content";
+import { materialFor, type LessonMaterial, type MapBranch } from "@/lib/content";
 import { finishedLessons, isFinished, lessonSequence, unitsOf } from "@/lib/progress";
 import { useCurrentProfile, useDB } from "@/lib/store";
 
@@ -35,7 +35,7 @@ export function StudyMaterial() {
             {(
               [
                 ["summary", "📋 الملخص"],
-                ["table", "📊 جدول ومقارنة"],
+                ["table", "📊 جداول ومقارنات"],
                 ["map", "🧠 خريطة ذهنية"],
               ] as [View, string][]
             ).map(([k, l]) => (
@@ -123,85 +123,103 @@ function SummaryBlock({ m }: { m: LessonMaterial }) {
 }
 
 function TableBlock({ m }: { m: LessonMaterial }) {
-  if (!m.table.rows.length)
-    return <p className="text-muted-foreground">لا يوجد جدول لهذا الدرس.</p>;
+  if (!m.tables.length) return <p className="text-muted-foreground">لا توجد جداول لهذا الدرس.</p>;
   return (
-    <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft overflow-x-auto">
-      <h3 className="font-bold mb-3">{m.table.title}</h3>
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr>
-            {m.table.headers.map((h, i) => (
-              <th key={i} className="bg-primary/20 p-2 border border-border text-right">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {m.table.rows.map((r, i) => (
-            <tr key={i} className={i % 2 ? "bg-muted/30" : ""}>
-              {r.map((c, j) => (
-                <td
-                  key={j}
-                  className={`p-2 border border-border align-top ${j === 0 ? "font-semibold" : ""}`}
-                >
-                  {c}
-                </td>
+    <div className="space-y-4">
+      {m.tables.map((t, ti) => (
+        <div
+          key={ti}
+          className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft overflow-x-auto"
+        >
+          <h3 className="font-bold mb-3">
+            {ti + 1}. {t.title}
+          </h3>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr>
+                {t.headers.map((h, i) => (
+                  <th
+                    key={i}
+                    className="bg-primary/20 p-2 border border-border text-right whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {t.rows.map((r, i) => (
+                <tr key={i} className={i % 2 ? "bg-muted/30" : ""}>
+                  {r.map((c, j) => (
+                    <td
+                      key={j}
+                      className={`p-2 border border-border align-top leading-relaxed ${j === 0 ? "font-semibold" : ""}`}
+                    >
+                      {c}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
   );
 }
 
-/** Mind map: lesson in the centre, coloured branches around it (stacked on small screens). */
+/** Mind map: lesson in the centre, branches → points → details. */
 function MindMap({ m }: { m: LessonMaterial }) {
   const half = Math.ceil(m.map.length / 2);
-  const left = m.map.slice(0, half);
-  const right = m.map.slice(half);
-  const Branch = ({ b, i }: { b: LessonMaterial["map"][number]; i: number }) => {
+  const Branch = ({ b, i }: { b: MapBranch; i: number }) => {
     const color = BRANCH_COLORS[i % BRANCH_COLORS.length];
     return (
       <div className="rounded-2xl p-3 border-2 bg-card/60" style={{ borderColor: color }}>
-        <div className="font-bold text-sm mb-2" style={{ color }}>
+        <div className="font-bold mb-2 flex items-center gap-2" style={{ color }}>
+          <span className="inline-block size-2.5 rounded-full" style={{ background: color }} />
           {b.label}
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {b.items.map((it, j) => (
-            <span
-              key={j}
-              className="text-xs rounded-full px-2.5 py-1"
-              style={{ background: color + "22" }}
-            >
-              {it}
-            </span>
-          ))}
-        </div>
+        <ul className="space-y-1.5 text-sm">
+          {b.items.map((it, j) =>
+            typeof it === "string" ? (
+              <li key={j} className="rounded-xl px-2.5 py-1.5" style={{ background: color + "1a" }}>
+                {it}
+              </li>
+            ) : (
+              <li key={j} className="rounded-xl px-2.5 py-1.5" style={{ background: color + "1a" }}>
+                <span className="font-semibold">{it.label}</span>
+                <ul
+                  className="mt-1 mr-3 space-y-0.5 border-r-2 pr-2"
+                  style={{ borderColor: color + "66" }}
+                >
+                  {it.sub.map((x, k) => (
+                    <li key={k} className="text-xs leading-relaxed">
+                      {x}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ),
+          )}
+        </ul>
       </div>
     );
   };
   return (
     <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">
-      <div className="grid md:grid-cols-[1fr_auto_1fr] gap-4 items-center">
-        <div className="space-y-3 order-2 md:order-1">
-          {left.map((b, i) => (
+      <div className="grid lg:grid-cols-[1fr_auto_1fr] gap-4 items-start">
+        <div className="space-y-3 order-2 lg:order-1">
+          {m.map.slice(0, half).map((b, i) => (
             <Branch key={b.label} b={b} i={i} />
           ))}
         </div>
-        <div className="order-1 md:order-2 flex justify-center">
-          <div className="relative">
-            <div className="hidden md:block absolute top-1/2 -right-4 w-4 h-0.5 bg-border" />
-            <div className="hidden md:block absolute top-1/2 -left-4 w-4 h-0.5 bg-border" />
-            <div className="bg-hero text-primary-foreground font-bold rounded-full px-6 py-6 text-center max-w-[12rem] shadow-glow">
-              {m.lesson}
-            </div>
+        <div className="order-1 lg:order-2 flex justify-center lg:sticky lg:top-40">
+          <div className="bg-hero text-primary-foreground font-bold rounded-full px-6 py-8 text-center max-w-[13rem] shadow-glow">
+            {m.lesson}
           </div>
         </div>
         <div className="space-y-3 order-3">
-          {right.map((b, i) => (
+          {m.map.slice(half).map((b, i) => (
             <Branch key={b.label} b={b} i={i + half} />
           ))}
         </div>

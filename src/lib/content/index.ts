@@ -7,7 +7,7 @@ import { STUDY_AR } from "./ar";
 import { STUDY_HI } from "./hi";
 import { STUDY_GEO } from "./geo";
 
-export type { LessonStudy } from "./types";
+export type { LessonStudy, MapBranch, MapItem, StudyTable } from "./types";
 
 const BUILT_IN: LessonStudy[] = [...STUDY_EN, ...STUDY_ST, ...STUDY_AR, ...STUDY_HI, ...STUDY_GEO];
 
@@ -22,7 +22,7 @@ export interface LessonMaterial extends LessonStudy {
 
 /** Fields the supervisor can override (stored as JSON in custom_summaries.data). */
 export type MaterialEdit = Partial<
-  Pick<LessonMaterial, "summary" | "keyPoints" | "table" | "map" | "essays">
+  Pick<LessonMaterial, "summary" | "keyPoints" | "tables" | "map" | "essays">
 >;
 
 export function builtInMaterial(subject: string, lesson: string): LessonMaterial {
@@ -34,7 +34,7 @@ export function builtInMaterial(subject: string, lesson: string): LessonMaterial
     title: sum?.title ?? lesson,
     summary: sum?.summary ?? "",
     keyPoints: sum?.keyPoints ?? [],
-    table: study?.table ?? { title: "", headers: [], rows: [] },
+    tables: study?.tables ?? [],
     map: study?.map ?? [],
     essays: study?.essays ?? [],
     edited: false,
@@ -49,7 +49,10 @@ export function materialFor(
   const base = builtInMaterial(subject, lesson);
   const row = overrides.find((o) => o.subject === subject && o.lesson === lesson);
   if (!row || typeof row.data !== "object" || row.data === null) return base;
-  return { ...base, ...(row.data as MaterialEdit), edited: true };
+  const data = row.data as MaterialEdit & { table?: LessonMaterial["tables"][number] };
+  // older edits stored a single `table`
+  const tables = data.tables ?? (data.table ? [data.table] : undefined);
+  return { ...base, ...data, ...(tables ? { tables } : {}), edited: true };
 }
 
 /** Lessons that have built-in study material (used by tests to validate coverage). */

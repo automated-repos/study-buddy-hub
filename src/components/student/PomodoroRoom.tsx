@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SUBJECTS } from "@/lib/ai-content";
 import { formatClock, usePomodoro, useStudyRoomMembers, type RoomMember } from "@/lib/pomodoro";
 import { minutesToday, useCurrentProfile, useDB } from "@/lib/store";
+import { LiveChat } from "@/components/LiveChat";
 
 const PRESETS = [
   { focus: 25, brk: 5, label: "25 / 5 (كلاسيكي)" },
@@ -22,7 +23,7 @@ export function PomodoroRoom() {
   const others = members.filter((m) => m.username !== profile.username);
 
   return (
-    <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+    <div className="grid lg:grid-cols-[1fr_360px] gap-6">
       <div className="bg-card-gradient rounded-3xl p-6 border border-border shadow-soft text-center space-y-5">
         <h2 className="text-2xl font-bold">🍅 مذاكرة لايف بالبومودورو</h2>
         <p className="text-sm text-muted-foreground">
@@ -125,12 +126,15 @@ export function PomodoroRoom() {
         </p>
       </div>
 
-      <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">
-        <h3 className="font-bold mb-1">👥 يذاكرون الآن</h3>
-        <p className="text-xs text-muted-foreground mb-3">
-          يراك إخوتك والمشرف هنا أثناء جلسة التركيز.
-        </p>
-        <MemberList members={running ? members : others} me={profile.username} />
+      <div className="space-y-4">
+        <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">
+          <h3 className="font-bold mb-1">👥 يذاكرون الآن</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            يراك إخوتك والمشرف هنا أثناء جلسة التركيز.
+          </p>
+          <MemberList members={running ? members : others} me={profile.username} />
+        </div>
+        <LiveChat />
       </div>
     </div>
   );

@@ -324,6 +324,35 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          created_at: number
+          id: string
+          text: string
+          username: string
+        }
+        Insert: {
+          created_at?: number
+          id: string
+          text: string
+          username: string
+        }
+        Update: {
+          created_at?: number
+          id?: string
+          text?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_username_fkey"
+            columns: ["username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
       custom_questions: {
         Row: {
           correct: number

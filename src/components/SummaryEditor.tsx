@@ -4,42 +4,66 @@ import { materialFor, type LessonMaterial, type MaterialEdit } from "@/lib/conte
 import { lessonsOfUnit, unitsOf } from "@/lib/progress";
 import { deleteCustomSummary, saveCustomSummary, useDB } from "@/lib/store";
 
-// Text formats used by the editor
+// Text formats used by the editor:
+// tables: each table starts with "# title", then the header row, then rows; cells separated by "|"
+// map: a line without "-" is a branch, "- " is a point, "-- " is a detail under the last point
 const SEP = " | ";
-const toTableText = (m: LessonMaterial) =>
-  [m.table.headers.join(SEP), ...m.table.rows.map((r) => r.join(SEP))].join("\n");
-const toMapText = (m: LessonMaterial) =>
-  m.map.map((b) => `${b.label}: ${b.items.join("، ")}`).join("\n");
+export const toTablesText = (m: LessonMaterial) =>
+  m.tables
+    .map((t) => [`# ${t.title}`, t.headers.join(SEP), ...t.rows.map((r) => r.join(SEP))].join("\n"))
+    .join("\n\n");
+export const toMapText = (m: LessonMaterial) =>
+  m.map
+    .map((b) =>
+      [
+        b.label,
+        ...b.items.flatMap((it) =>
+          typeof it === "string" ? [`- ${it}`] : [`- ${it.label}`, ...it.sub.map((x) => `-- ${x}`)],
+        ),
+      ].join("\n"),
+    )
+    .join("\n\n");
 
-function parseTable(title: string, text: string): MaterialEdit["table"] {
-  const lines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const split = (l: string) => l.split("|").map((c) => c.trim());
-  const headers = lines[0] ? split(lines[0]) : [];
-  const rows = lines.slice(1).map((l) => {
-    const cells = split(l);
-    return headers.map((_, i) => cells[i] ?? "");
-  });
-  return { title, headers, rows };
+export function parseTables(text: string): NonNullable<MaterialEdit["tables"]> {
+  // cells are separated by " | " (with spaces) so values like P(A|B) stay intact
+  const split = (l: string) => l.split(/(?:^|\s)\|(?:\s|$)/).map((c) => c.trim());
+  const tables: NonNullable<MaterialEdit["tables"]> = [];
+  for (const raw of text.split("\n").map((l) => l.trim())) {
+    if (!raw) continue;
+    if (raw.startsWith("#")) {
+      tables.push({ title: raw.replace(/^#+/, "").trim(), headers: [], rows: [] });
+      continue;
+    }
+    if (!tables.length) tables.push({ title: "", headers: [], rows: [] });
+    const t = tables[tables.length - 1];
+    if (!t.headers.length) t.headers = split(raw);
+    else {
+      const cells = split(raw);
+      t.rows.push(t.headers.map((_, i) => cells[i] ?? ""));
+    }
+  }
+  return tables.filter((t) => t.headers.length);
 }
 
-function parseMap(text: string): MaterialEdit["map"] {
-  return text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((l) => {
-      const [label, rest = ""] = l.split(/:(.*)/s);
-      return {
-        label: label.trim(),
-        items: rest
-          .split(/[،,]/)
-          .map((x) => x.trim())
-          .filter(Boolean),
-      };
-    });
+export function parseMap(text: string): NonNullable<MaterialEdit["map"]> {
+  const branches: NonNullable<MaterialEdit["map"]> = [];
+  for (const raw of text.split("\n").map((l) => l.trim())) {
+    if (!raw) continue;
+    if (raw.startsWith("--")) {
+      const b = branches[branches.length - 1];
+      if (!b || !b.items.length) continue;
+      const last = b.items[b.items.length - 1];
+      const detail = raw.replace(/^-+/, "").trim();
+      b.items[b.items.length - 1] =
+        typeof last === "string"
+          ? { label: last, sub: [detail] }
+          : { ...last, sub: [...last.sub, detail] };
+    } else if (raw.startsWith("-")) {
+      const b = branches[branches.length - 1];
+      if (b) b.items.push(raw.replace(/^-+/, "").trim());
+    } else branches.push({ label: raw, items: [] });
+  }
+  return branches;
 }
 
 /** Supervisor screen: edit summary, comparison table, mind map and essay questions of any lesson. */
@@ -55,8 +79,7 @@ export function SummaryEditor() {
 
   const [summary, setSummary] = useState("");
   const [points, setPoints] = useState("");
-  const [tableTitle, setTableTitle] = useState("");
-  const [table, setTable] = useState("");
+  const [tables, setTables] = useState("");
   const [map, setMap] = useState("");
   const [essays, setEssays] = useState<[string, string][]>([]);
   const [busy, setBusy] = useState(false);
@@ -67,8 +90,7 @@ export function SummaryEditor() {
   useEffect(() => {
     setSummary(m.summary);
     setPoints(m.keyPoints.join("\n"));
-    setTableTitle(m.table.title);
-    setTable(toTableText(m));
+    setTables(toTablesText(m));
     setMap(toMapText(m));
     setEssays(m.essays.map((e) => [...e] as [string, string]));
     setMsg("");
@@ -95,7 +117,7 @@ export function SummaryEditor() {
         .split("\n")
         .map((p) => p.trim())
         .filter(Boolean),
-      table: parseTable(tableTitle.trim(), table),
+      tables: parseTables(tables),
       map: parseMap(map),
       essays: essays.filter(([q, a]) => q.trim() && a.trim()).map(([q, a]) => [q.trim(), a.trim()]),
     };
@@ -115,7 +137,7 @@ export function SummaryEditor() {
       <div>
         <h1 className="text-3xl font-bold">الملخصات والأسئلة المقالية</h1>
         <p className="text-muted-foreground mt-1">
-          عدّل ملخص أي درس وجدول المقارنة والخريطة الذهنية والأسئلة المقالية لتطابق كتاب المدرسة.
+          عدّل ملخص أي درس والجداول والخريطة الذهنية والأسئلة المقالية لتطابق كتاب المدرسة.
         </p>
       </div>
 
@@ -165,34 +187,28 @@ export function SummaryEditor() {
           dir="auto"
         />
 
-        <label className="block text-sm font-semibold">📊 جدول المقارنة</label>
-        <input
-          value={tableTitle}
-          onChange={(e) => setTableTitle(e.target.value)}
-          placeholder="عنوان الجدول"
-          className={box}
-          dir="auto"
-        />
+        <label className="block text-sm font-semibold">📊 الجداول</label>
         <p className="text-xs text-muted-foreground">
-          السطر الأول عناوين الأعمدة، وكل سطر بعده صف. افصل بين الخانات بالعلامة |{" "}
+          ابدأ كل جدول بسطر «# عنوان الجدول»، ثم سطر عناوين الأعمدة، ثم صف في كل سطر. افصل بين
+          الخانات بالعلامة | مع مسافة قبلها وبعدها، واترك سطراً فارغاً بين الجداول.
         </p>
         <textarea
-          value={table}
-          onChange={(e) => setTable(e.target.value)}
-          rows={6}
+          value={tables}
+          onChange={(e) => setTables(e.target.value)}
+          rows={12}
           className={`${box} font-mono`}
           dir="auto"
         />
 
         <label className="block text-sm font-semibold">🧠 الخريطة الذهنية</label>
         <p className="text-xs text-muted-foreground">
-          كل سطر فرع: اسم الفرع ثم «:» ثم العناصر مفصولة بفاصلة (،)
+          سطر بدون شرطة = فرع رئيسي، «- » = نقطة في الفرع، «-- » = تفصيل تحت النقطة السابقة.
         </p>
         <textarea
           value={map}
           onChange={(e) => setMap(e.target.value)}
-          rows={5}
-          className={box}
+          rows={14}
+          className={`${box} font-mono`}
           dir="auto"
         />
 

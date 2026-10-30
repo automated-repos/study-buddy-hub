@@ -1,17 +1,30 @@
-import type { LessonStudy } from "./types";
+import type { LessonStudy, MapBranch, StudyTable } from "./types";
 
 const S = "إنجليزي";
 
-/** Vocabulary lesson helper: table of words, a mind map and essay prompts. */
+/**
+ * Vocabulary lesson: a vocabulary table, a word-forms / collocations table,
+ * a mind map and essay prompts.
+ */
 const vocab = (
   lesson: string,
   words: [string, string, string][],
-  map: { label: string; items: string[] }[],
+  forms: [string, string, string][],
+  map: MapBranch[],
   essays: [string, string][],
+  extra: StudyTable[] = [],
 ): LessonStudy => ({
   subject: S,
   lesson,
-  table: { title: "Key vocabulary", headers: ["Word", "Meaning", "Example"], rows: words },
+  tables: [
+    { title: "Key vocabulary", headers: ["Word", "Meaning", "Example"], rows: words },
+    {
+      title: "Word forms & useful phrases",
+      headers: ["Word / phrase", "Form or use", "Example"],
+      rows: forms,
+    },
+    ...extra,
+  ],
   map,
   essays,
 });
@@ -22,16 +35,68 @@ export const STUDY_EN: LessonStudy[] = [
     "My Day in Hospital",
     [
       ["ward", "a hospital room with beds", "He stayed in the children's ward."],
-      ["surgeon", "a doctor who operates", "The surgeon operated on her knee."],
-      ["discharge", "allow a patient to go home", "She was discharged after two days."],
-      ["prescription", "a doctor's order for medicine", "Take this prescription to the pharmacy."],
-      ["recover", "get better", "He recovered quickly."],
+      ["surgeon", "a doctor who performs operations", "The surgeon operated on her knee."],
+      ["patient", "a person receiving medical care", "The patient was very brave."],
+      ["admitted", "accepted into hospital as a patient", "He was admitted last night."],
+      ["discharged", "allowed to leave hospital", "She was discharged after two days."],
+      [
+        "prescription",
+        "a doctor's written order for medicine",
+        "Take this prescription to the pharmacy.",
+      ],
+      [
+        "anaesthetic",
+        "a drug that stops you feeling pain",
+        "The operation was done under anaesthetic.",
+      ],
+      ["recover", "get better after illness", "He recovered quickly."],
+      ["X-ray", "a picture of the inside of the body", "The X-ray showed a broken bone."],
+      [
+        "intensive care",
+        "a unit for very seriously ill patients",
+        "He spent a night in intensive care.",
+      ],
     ],
     [
-      { label: "People", items: ["surgeon", "nurse", "patient", "paediatrician"] },
-      { label: "Places", items: ["ward", "reception", "pharmacy", "intensive care"] },
-      { label: "Treatment", items: ["injection", "X-ray", "bandage", "anaesthetic"] },
-      { label: "Stages", items: ["admitted", "check-up", "operation", "discharged"] },
+      ["recover → recovery", "verb → noun", "She made a full recovery."],
+      ["operate → operation", "verb → noun", "The operation was successful."],
+      ["pain → painful / painless", "noun → adjectives", "The injection was painless."],
+      ["treat → treatment", "verb → noun", "The treatment lasted a week."],
+      ["take someone's temperature", "collocation", "The nurse took my temperature."],
+      ["have an operation", "collocation", "He had an operation on his leg."],
+      ["visiting hours", "phrase", "Visiting hours are from 4 to 6."],
+    ],
+    [
+      {
+        label: "People",
+        items: [
+          { label: "doctors", sub: ["surgeon", "paediatrician (children)", "specialist"] },
+          "nurse",
+          "patient",
+          "visitor",
+        ],
+      },
+      {
+        label: "Places",
+        items: ["ward", "reception", "pharmacy", "operating theatre", "intensive care"],
+      },
+      {
+        label: "Treatment",
+        items: ["injection", "X-ray", "bandage", "anaesthetic", "prescription"],
+      },
+      {
+        label: "Stages of a stay",
+        items: ["admitted", "check-up", "operation", "recover", "discharged"],
+      },
+      {
+        label: "Grammar link",
+        items: [
+          {
+            label: "past tenses to tell the story",
+            sub: ["past simple", "past perfect: had already started"],
+          },
+        ],
+      },
     ],
     [
       [
@@ -52,22 +117,68 @@ export const STUDY_EN: LessonStudy[] = [
     "Emergency Call",
     [
       ["emergency", "a sudden dangerous situation", "Call 123 in a medical emergency."],
+      [
+        "ambulance",
+        "a vehicle that takes sick people to hospital",
+        "The ambulance arrived quickly.",
+      ],
+      ["paramedic", "a person trained in emergency care", "Paramedics helped the injured man."],
       ["unconscious", "not awake or aware", "The driver was unconscious."],
-      ["paramedic", "a person trained in emergency care", "Paramedics arrived in minutes."],
-      ["first aid", "simple help before a doctor arrives", "She gave him first aid."],
       ["injury", "harm to the body", "He had a serious head injury."],
+      ["first aid", "simple help before a doctor arrives", "She gave him first aid."],
+      ["bleeding", "losing blood", "Press on the wound to stop the bleeding."],
+      [
+        "choking",
+        "unable to breathe because the throat is blocked",
+        "The child was choking on a sweet.",
+      ],
+      ["faint", "lose consciousness for a short time", "She fainted in the heat."],
+      ["witness", "a person who sees an event", "The witness called the police."],
     ],
     [
-      { label: "Numbers in Egypt", items: ["123 ambulance", "122 police", "180 fire"] },
+      [
+        "Egypt emergency numbers",
+        "123 ambulance / 122 police / 180 fire",
+        "Call 180 if there is a fire.",
+      ],
+      [
+        "injure → injury → injured",
+        "verb → noun → adjective",
+        "The injured man was taken to hospital.",
+      ],
+      ["conscious ↔ unconscious", "opposites", "Is he conscious?"],
+      ["Stay calm.", "imperative (instruction)", "Stay calm and wait for help."],
+      ["Don't move him.", "negative imperative", "Don't move the injured person."],
+      [
+        "What's your emergency?",
+        "operator's question",
+        "What's your emergency? – There's been an accident.",
+      ],
+    ],
+    [
+      {
+        label: "Emergency numbers (Egypt)",
+        items: ["123 ambulance", "122 police", "180 fire brigade"],
+      },
       {
         label: "What to say",
-        items: ["your exact location", "what happened", "number of injured"],
+        items: ["exact location", "what happened", "how many people are hurt", "your phone number"],
       },
       {
         label: "First aid",
-        items: ["stay calm", "check breathing", "stop bleeding", "don't move the injured"],
+        items: [
+          "stay calm",
+          "check breathing",
+          { label: "bleeding", sub: ["press a clean cloth on the wound"] },
+          "don't move the injured",
+          "keep them warm",
+        ],
       },
-      { label: "Injuries", items: ["burn", "sprain", "bleeding", "choking"] },
+      { label: "Injuries", items: ["burn", "sprain", "broken bone", "bleeding", "choking"] },
+      {
+        label: "Language",
+        items: [{ label: "imperatives", sub: ["Stay calm.", "Don't move him.", "Press here."] }],
+      },
     ],
     [
       [
@@ -87,32 +198,86 @@ export const STUDY_EN: LessonStudy[] = [
   {
     subject: S,
     lesson: "Grammar: Past Perfect Simple & Continuous",
-    table: {
-      title: "Past perfect simple vs continuous",
-      headers: ["", "Past perfect simple", "Past perfect continuous"],
-      rows: [
-        ["Form", "had + past participle", "had been + verb-ing"],
-        [
-          "Use",
-          "an action completed before another past action",
-          "an action in progress for some time before a past moment",
+    tables: [
+      {
+        title: "Form",
+        headers: ["", "Affirmative", "Negative", "Question"],
+        rows: [
+          ["Past perfect simple", "She had finished.", "She hadn't finished.", "Had she finished?"],
+          [
+            "Past perfect continuous",
+            "She had been working.",
+            "She hadn't been working.",
+            "Had she been working?",
+          ],
         ],
-        [
-          "Example",
-          "The film had started when we arrived.",
-          "She was tired because she had been working all day.",
+      },
+      {
+        title: "Use",
+        headers: ["", "Past perfect simple", "Past perfect continuous"],
+        rows: [
+          [
+            "Main idea",
+            "an action completed before another past action",
+            "an action in progress for some time before a past moment",
+          ],
+          ["Focus", "result / completion", "duration / activity"],
+          [
+            "Typical words",
+            "already, just, never, before, after, by the time, when",
+            "for, since, all day, how long",
+          ],
+          [
+            "Example",
+            "When we arrived, the film had already started.",
+            "She was tired because she had been working all day.",
+          ],
         ],
-        ["Key words", "already, just, never, before, by the time", "for, since, all day, how long"],
-      ],
-    },
+      },
+      {
+        title: "Special structures & common mistakes",
+        headers: ["Structure / mistake", "Correct example"],
+        rows: [
+          ["No sooner had … than", "No sooner had I left than it started to rain."],
+          ["Hardly / Scarcely had … when", "Hardly had I arrived when the phone rang."],
+          [
+            "After + past perfect, past simple",
+            "After she had finished her homework, she watched TV.",
+          ],
+          ["✗ When I arrived, the film has started.", "✓ When I arrived, the film had started."],
+          [
+            "✗ She had been knowing him for years.",
+            "✓ She had known him for years. (stative verb: no -ing)",
+          ],
+        ],
+      },
+    ],
     map: [
-      { label: "Simple", items: ["had + p.p.", "completed action", "already / by the time"] },
+      {
+        label: "Simple",
+        items: [
+          "had + past participle",
+          "completed earlier action",
+          { label: "signal words", sub: ["already", "just", "never", "by the time"] },
+        ],
+      },
       {
         label: "Continuous",
-        items: ["had been + -ing", "duration", "visible result (tired, wet)"],
+        items: [
+          "had been + verb-ing",
+          "duration before a past moment",
+          { label: "visible results", sub: ["tired", "wet", "red eyes"] },
+        ],
       },
-      { label: "Time links", items: ["after", "before", "when", "by the time"] },
+      { label: "Time links", items: ["after", "before", "when", "by the time", "until"] },
       { label: "Inversion", items: ["No sooner had … than", "Hardly had … when"] },
+      {
+        label: "Watch out",
+        items: [
+          "stative verbs (know, believe, own) → simple only",
+          "don't mix with present perfect",
+        ],
+      },
     ],
     essays: [
       [
@@ -132,17 +297,54 @@ export const STUDY_EN: LessonStudy[] = [
   vocab(
     "Beyond the White Coat",
     [
-      ["dedicated", "very committed", "She is a dedicated doctor."],
+      ["dedicated", "very committed to a job or cause", "She is a dedicated doctor."],
       ["compassion", "sympathy for others' suffering", "Doctors need compassion."],
       ["diagnose", "identify an illness", "The doctor diagnosed flu."],
-      ["volunteer", "work without pay", "He volunteers at a clinic."],
+      ["volunteer", "work without pay", "He volunteers at a free clinic."],
       ["remote", "far away and hard to reach", "They treat patients in remote villages."],
+      ["specialist", "a doctor expert in one area", "She was sent to a heart specialist."],
+      ["epidemic", "a disease spreading quickly among many people", "Doctors fought the epidemic."],
+      ["vaccine", "a substance that protects against disease", "The vaccine saved millions."],
+      ["selfless", "caring more about others than yourself", "Nurses are often selfless."],
+      ["rewarding", "satisfying and worthwhile", "Medicine is a rewarding career."],
     ],
     [
-      { label: "Qualities", items: ["dedicated", "compassionate", "patient", "selfless"] },
-      { label: "Specialists", items: ["cardiologist", "paediatrician", "dentist", "surgeon"] },
-      { label: "Role models", items: ["Magdi Yacoub", "Doctors Without Borders"] },
-      { label: "Work", items: ["research", "vaccines", "volunteering", "remote areas"] },
+      [
+        "dedicate → dedication → dedicated",
+        "verb → noun → adjective",
+        "Her dedication inspired us.",
+      ],
+      ["diagnose → diagnosis", "verb → noun", "The diagnosis was correct."],
+      ["medicine → medical", "noun → adjective", "medical research"],
+      ["compassion → compassionate", "noun → adjective", "a compassionate nurse"],
+      ["save lives", "collocation", "Doctors save lives every day."],
+      ["Doctors Without Borders", "organisation", "They work in crisis areas worldwide."],
+    ],
+    [
+      {
+        label: "Qualities",
+        items: ["dedicated", "compassionate", "patient", "selfless", "knowledgeable"],
+      },
+      {
+        label: "Specialists",
+        items: [
+          "cardiologist (heart)",
+          "paediatrician (children)",
+          "dentist (teeth)",
+          "surgeon (operations)",
+        ],
+      },
+      {
+        label: "Role models",
+        items: [
+          { label: "Magdi Yacoub", sub: ["heart surgeon", "Aswan Heart Centre"] },
+          "Doctors Without Borders",
+        ],
+      },
+      {
+        label: "Work beyond hospitals",
+        items: ["medical research", "vaccines", "volunteering", "remote areas"],
+      },
     ],
     [
       [
@@ -166,17 +368,49 @@ export const STUDY_EN: LessonStudy[] = [
       ["fragile", "easily damaged", "Coral reefs are fragile."],
       ["pollution", "damage by harmful substances", "Air pollution causes disease."],
       ["endangered", "at risk of disappearing", "Pandas are endangered."],
+      ["extinct", "no longer existing", "Dinosaurs are extinct."],
       ["deforestation", "cutting down forests", "Deforestation destroys habitats."],
-      ["recycle", "use materials again", "We recycle paper and glass."],
+      ["habitat", "the natural home of a plant or animal", "The forest is the tiger's habitat."],
+      ["biodiversity", "the variety of living things", "Rainforests have rich biodiversity."],
+      [
+        "ecosystem",
+        "living things and their environment together",
+        "Pollution harms the whole ecosystem.",
+      ],
+      ["recycle", "use materials again after processing", "We recycle paper and glass."],
+      ["toxic", "poisonous", "Toxic waste pollutes rivers."],
+    ],
+    [
+      ["pollute → pollution → polluted", "verb → noun → adjective", "a polluted river"],
+      ["environment → environmental", "noun → adjective", "environmental problems"],
+      ["the 3 Rs", "reduce, reuse, recycle", "Follow the 3 Rs at home."],
+      ["single-use plastic", "collocation", "Avoid single-use plastic bags."],
+      ["natural resources", "collocation", "Water is a precious natural resource."],
+      ["conserve water", "collocation", "Turn off the tap to conserve water."],
     ],
     [
       {
         label: "Problems",
-        items: ["pollution", "deforestation", "overfishing", "desertification"],
+        items: [
+          { label: "pollution", sub: ["air", "water", "plastic"] },
+          "deforestation",
+          "overfishing",
+          "desertification",
+        ],
       },
-      { label: "Victims", items: ["endangered species", "coral reefs", "habitats"] },
-      { label: "Solutions", items: ["recycle", "reuse", "reduce plastic", "conserve water"] },
-      { label: "Ideas", items: ["biodiversity", "ecosystem", "natural resources"] },
+      {
+        label: "Victims",
+        items: ["endangered species", "coral reefs (Red Sea)", "habitats", "biodiversity"],
+      },
+      {
+        label: "Solutions",
+        items: [
+          { label: "3 Rs", sub: ["reduce", "reuse", "recycle"] },
+          "conserve water and energy",
+          "plant trees",
+        ],
+      },
+      { label: "Key ideas", items: ["ecosystem", "natural resources", "fragile balance"] },
     ],
     [
       [
@@ -196,17 +430,81 @@ export const STUDY_EN: LessonStudy[] = [
   vocab(
     "Climate Change",
     [
-      ["global warming", "rise in Earth's temperature", "Global warming melts ice."],
-      ["greenhouse gas", "gas that traps heat", "Carbon dioxide is a greenhouse gas."],
+      ["climate", "usual weather of a place over a long time", "Egypt has a hot, dry climate."],
+      ["global warming", "rise in Earth's average temperature", "Global warming melts ice."],
+      [
+        "greenhouse gas",
+        "gas that traps heat in the atmosphere",
+        "Carbon dioxide is a greenhouse gas.",
+      ],
       ["fossil fuels", "coal, oil and gas", "Burning fossil fuels pollutes the air."],
-      ["renewable energy", "energy that doesn't run out", "Solar power is renewable."],
-      ["drought", "long period without rain", "The drought ruined crops."],
+      ["emissions", "gases sent into the air", "Factories must reduce emissions."],
+      ["renewable energy", "energy that does not run out", "Solar power is renewable."],
+      ["drought", "a long period without rain", "The drought ruined crops."],
+      ["flood", "water covering normally dry land", "Floods destroyed many homes."],
+      ["sea level", "average height of the sea surface", "Rising sea levels threaten Alexandria."],
+      [
+        "carbon footprint",
+        "amount of CO₂ your activities produce",
+        "Cycling reduces your carbon footprint.",
+      ],
     ],
     [
-      { label: "Causes", items: ["fossil fuels", "deforestation", "emissions"] },
-      { label: "Effects", items: ["rising sea levels", "heatwaves", "droughts and floods"] },
-      { label: "Solutions", items: ["solar and wind power", "public transport", "planting trees"] },
-      { label: "Egypt", items: ["Nile Delta at risk", "COP27 in Sharm El-Sheikh"] },
+      [
+        "Because of / As a result / Therefore",
+        "cause and effect linkers",
+        "As a result, sea levels are rising.",
+      ],
+      ["lead to / cause / result in", "verbs of effect", "Burning coal leads to air pollution."],
+      ["globe → global → globally", "noun → adjective → adverb", "a global problem"],
+      ["reduce emissions", "collocation", "We must reduce emissions."],
+      ["extreme weather", "collocation", "Heatwaves are extreme weather."],
+      [
+        "the Paris Agreement / COP27",
+        "international action",
+        "COP27 was held in Sharm El-Sheikh in 2022.",
+      ],
+    ],
+    [
+      {
+        label: "Causes",
+        items: [
+          { label: "fossil fuels", sub: ["coal", "oil", "gas"] },
+          "deforestation",
+          "factory and car emissions",
+        ],
+      },
+      {
+        label: "Effects",
+        items: [
+          "rising sea levels",
+          "heatwaves",
+          "droughts and floods",
+          "melting glaciers",
+          "threat to crops",
+        ],
+      },
+      {
+        label: "Solutions",
+        items: [
+          { label: "renewable energy", sub: ["solar panels", "wind turbines"] },
+          "public transport",
+          "electric cars",
+          "planting trees",
+        ],
+      },
+      {
+        label: "Egypt",
+        items: [
+          "Nile Delta and Alexandria at risk",
+          "COP27 in Sharm El-Sheikh 2022",
+          "solar parks (Benban)",
+        ],
+      },
+      {
+        label: "Language",
+        items: ["cause/effect linkers", "passive: Millions of trees are cut down every year."],
+      },
     ],
     [
       [
@@ -226,24 +524,78 @@ export const STUDY_EN: LessonStudy[] = [
   {
     subject: S,
     lesson: "Grammar: Modal Verbs",
-    table: {
-      title: "Modal verbs and their uses",
-      headers: ["Use", "Modal", "Example"],
-      rows: [
-        ["Obligation", "must / have to", "You must wear a seatbelt."],
-        ["Prohibition", "mustn't", "You mustn't smoke here."],
-        ["No necessity", "don't have to / needn't", "You don't have to come."],
-        ["Advice", "should / ought to / had better", "You should rest."],
-        ["Certainty (deduction)", "must / can't", "He must be at home. She can't be in Paris."],
-        ["Possibility", "may / might / could", "It might rain."],
-        ["Past criticism", "should have + p.p.", "You should have told me."],
-      ],
-    },
+    tables: [
+      {
+        title: "Modal verbs and their uses",
+        headers: ["Use", "Modal", "Example"],
+        rows: [
+          ["Obligation (rule)", "must / have to", "You must wear a seatbelt."],
+          ["Prohibition", "mustn't", "You mustn't smoke here."],
+          ["No necessity", "don't have to / needn't", "You don't have to bring food."],
+          ["Advice", "should / ought to / had better", "You should rest. You'd better leave now."],
+          ["Ability", "can / could / be able to", "She could swim when she was five."],
+          ["Permission / request", "can / could / may", "May I open the window?"],
+          ["Possibility", "may / might / could", "It might rain later."],
+          [
+            "Certainty (deduction)",
+            "must (sure yes) / can't (sure no)",
+            "He must be at home. She can't be in Paris.",
+          ],
+        ],
+      },
+      {
+        title: "Modals with the past (modal + have + past participle)",
+        headers: ["Form", "Meaning", "Example"],
+        rows: [
+          ["must have done", "I'm sure it happened", "He must have taken the bus."],
+          ["can't have done", "I'm sure it didn't happen", "She can't have seen me."],
+          ["might / may have done", "perhaps it happened", "They might have forgotten."],
+          ["should have done", "criticism / regret", "You should have told me."],
+          [
+            "needn't have done",
+            "it happened but wasn't necessary",
+            "You needn't have cooked; we ate out.",
+          ],
+        ],
+      },
+      {
+        title: "Common mistakes",
+        headers: ["✗ Wrong", "✓ Correct"],
+        rows: [
+          ["You must to study.", "You must study. (no 'to' after modals)"],
+          ["He cans swim.", "He can swim. (no -s)"],
+          ["You mustn't come. (meaning: not necessary)", "You don't have to come."],
+          ["You had better to go.", "You had better go."],
+          ["She ought study.", "She ought to study."],
+        ],
+      },
+    ],
     map: [
-      { label: "Obligation", items: ["must", "have to", "mustn't (forbidden)"] },
-      { label: "Advice", items: ["should", "ought to", "had better"] },
-      { label: "Deduction", items: ["must (sure)", "might (possible)", "can't (impossible)"] },
-      { label: "Past", items: ["must have", "can't have", "should have"] },
+      {
+        label: "Obligation",
+        items: [
+          "must (rule / speaker)",
+          "have to (external)",
+          { label: "negatives", sub: ["mustn't = forbidden", "don't have to = not necessary"] },
+        ],
+      },
+      { label: "Advice", items: ["should", "ought to", "had better + infinitive"] },
+      {
+        label: "Ability & permission",
+        items: ["can / could", "be able to", "may / could (polite)"],
+      },
+      {
+        label: "Deduction",
+        items: ["must (sure)", "might / may / could (possible)", "can't (impossible)"],
+      },
+      {
+        label: "Past modals",
+        items: ["must have", "can't have", "might have", "should have", "needn't have"],
+      },
+      {
+        label: "Form rules",
+        items: ["modal + bare infinitive", "no -s", "no 'to' (except ought to, have to)"],
+      },
     ],
     essays: [
       [
@@ -264,16 +616,53 @@ export const STUDY_EN: LessonStudy[] = [
     "Green Heroes",
     [
       ["conservationist", "a person who protects nature", "She is a famous conservationist."],
-      ["campaign", "organised actions for a goal", "They started a campaign against plastic."],
-      ["raise awareness", "make people know about an issue", "The video raised awareness."],
-      ["sustainable", "not harming the future", "We need sustainable farming."],
-      ["volunteer", "offer to help for free", "Students volunteered to plant trees."],
+      [
+        "environmentalist",
+        "a person who works to protect the environment",
+        "Environmentalists protested against the factory.",
+      ],
+      [
+        "campaign",
+        "organised actions to achieve a goal",
+        "They started a campaign against plastic.",
+      ],
+      ["raise awareness", "make people know more about an issue", "The video raised awareness."],
+      [
+        "sustainable",
+        "meeting today's needs without harming the future",
+        "We need sustainable farming.",
+      ],
+      [
+        "reforestation",
+        "planting trees where forests were cut",
+        "Reforestation brings back wildlife.",
+      ],
+      ["grassroots", "starting from ordinary local people", "a grassroots movement"],
+      ["pioneer", "one of the first to do something", "She was a pioneer of tree planting."],
+      ["inspire", "make someone want to do something good", "Her story inspired millions."],
+      ["eco-friendly", "not harmful to the environment", "Use eco-friendly bags."],
     ],
     [
-      { label: "Heroes", items: ["Wangari Maathai (trees)", "Greta Thunberg (climate)"] },
-      { label: "Actions", items: ["campaigns", "clean-ups", "reforestation"] },
-      { label: "Qualities", items: ["dedicated", "inspiring", "determined"] },
-      { label: "Ideas", items: ["sustainability", "grassroots movements", "eco-friendly"] },
+      ["protect → protection → protective", "verb → noun → adjective", "environmental protection"],
+      ["inspire → inspiration → inspiring", "verb → noun → adjective", "an inspiring story"],
+      ["hero → heroic → heroism", "noun → adjective → noun", "a heroic act"],
+      ["make a difference", "phrase", "Small actions make a difference."],
+      ["dedicate your life to", "phrase", "She dedicated her life to the planet."],
+    ],
+    [
+      {
+        label: "Heroes",
+        items: [
+          { label: "Wangari Maathai", sub: ["Green Belt Movement", "Nobel Peace Prize 2004"] },
+          { label: "Greta Thunberg", sub: ["school strikes for climate"] },
+        ],
+      },
+      {
+        label: "Actions",
+        items: ["campaigns", "clean-ups", "reforestation", "donating", "volunteering"],
+      },
+      { label: "Qualities", items: ["dedicated", "inspiring", "determined", "brave"] },
+      { label: "Ideas", items: ["sustainability", "grassroots movements", "eco-friendly living"] },
     ],
     [
       [
@@ -295,16 +684,41 @@ export const STUDY_EN: LessonStudy[] = [
     "The Digital Age",
     [
       ["digital", "using computer technology", "We live in a digital age."],
-      ["download", "copy data from the internet", "Download the app."],
-      ["cyberbullying", "bullying online", "Cyberbullying can hurt deeply."],
-      ["privacy", "keeping personal information safe", "Protect your online privacy."],
-      ["fake news", "false information presented as news", "Check facts to avoid fake news."],
+      [
+        "download / upload",
+        "copy from / send to the internet",
+        "Upload your homework to the platform.",
+      ],
+      ["browser", "program for viewing websites", "Open the link in your browser."],
+      ["social media", "apps and sites for sharing", "Teenagers spend hours on social media."],
+      ["cyberbullying", "bullying someone online", "Report cyberbullying to an adult."],
+      ["privacy", "keeping personal information safe", "Check your privacy settings."],
+      ["hacker", "person who gets into systems illegally", "A hacker stole the passwords."],
+      ["fake news", "false information presented as news", "Check sources to avoid fake news."],
+      ["addicted to", "unable to stop doing something", "He is addicted to games."],
+      ["go viral", "spread very quickly online", "The video went viral."],
     ],
     [
-      { label: "Tools", items: ["smartphone", "browser", "Wi-Fi", "cloud storage"] },
-      { label: "Benefits", items: ["communication", "online learning", "e-commerce"] },
-      { label: "Dangers", items: ["cyberbullying", "hackers", "addiction", "fake news"] },
-      { label: "Safety", items: ["strong passwords", "privacy settings", "check sources"] },
+      ["digital → digitally → digitise", "adjective → adverb → verb", "Books are being digitised."],
+      ["addict → addiction → addictive", "noun → noun → adjective", "Games can be addictive."],
+      ["screen time", "collocation", "Limit your screen time."],
+      ["digital footprint", "collocation", "Your posts create a digital footprint."],
+      ["log in / log out", "phrasal verbs", "Log out after using a public computer."],
+    ],
+    [
+      { label: "Tools", items: ["smartphone", "browser", "Wi-Fi", "cloud storage", "apps"] },
+      {
+        label: "Benefits",
+        items: ["instant communication", "online learning", "e-commerce", "information"],
+      },
+      {
+        label: "Dangers",
+        items: ["cyberbullying", "hackers and viruses", "addiction", "fake news", "privacy loss"],
+      },
+      {
+        label: "Staying safe",
+        items: ["strong passwords", "privacy settings", "check sources", "limit screen time"],
+      },
     ],
     [
       [
@@ -324,17 +738,69 @@ export const STUDY_EN: LessonStudy[] = [
   vocab(
     "AI and the Future",
     [
-      ["artificial intelligence", "machines that think and learn", "AI can translate languages."],
-      ["automation", "machines doing human work", "Automation is changing factories."],
-      ["algorithm", "steps a computer follows", "The algorithm suggests videos."],
+      [
+        "artificial intelligence (AI)",
+        "machines that can think and learn",
+        "AI can translate languages.",
+      ],
+      ["robot", "a machine that does tasks automatically", "Robots build cars."],
+      ["automation", "using machines instead of people", "Automation is changing factories."],
+      ["algorithm", "a set of steps a computer follows", "The algorithm suggests videos."],
+      [
+        "machine learning",
+        "computers improving by learning from data",
+        "Machine learning powers voice assistants.",
+      ],
+      ["chatbot", "a program that chats with people", "The bank uses a chatbot."],
       ["ethical", "about right and wrong", "AI raises ethical questions."],
       ["efficient", "working well without waste", "Robots are very efficient."],
+      ["replace", "take the place of", "AI may replace some jobs."],
+      ["predict", "say what will happen", "AI can predict the weather."],
     ],
     [
-      { label: "Uses", items: ["medicine", "self-driving cars", "chatbots", "translation"] },
-      { label: "Advantages", items: ["speed", "accuracy", "24-hour work"] },
-      { label: "Concerns", items: ["jobs", "privacy", "ethics"] },
-      { label: "Future skills", items: ["creativity", "critical thinking", "communication"] },
+      [
+        "Despite / In spite of + noun/-ing",
+        "contrast",
+        "Despite its benefits, AI raises concerns.",
+      ],
+      [
+        "However / On the other hand",
+        "contrast linkers",
+        "AI is fast. However, it can make mistakes.",
+      ],
+      ["analyse → analysis → analytical", "verb → noun → adjective", "AI can analyse huge data."],
+      ["efficient → efficiency → efficiently", "adj → noun → adverb", "Robots work efficiently."],
+      ["self-driving car", "compound", "Self-driving cars use AI."],
+    ],
+    [
+      {
+        label: "Uses",
+        items: [
+          "medicine (diagnosis)",
+          "self-driving cars",
+          "chatbots",
+          "translation",
+          "smart homes",
+        ],
+      },
+      {
+        label: "Advantages",
+        items: ["speed", "accuracy", "works 24 hours", "does dangerous tasks"],
+      },
+      { label: "Concerns", items: ["jobs", "privacy", "ethics", "mistakes and bias"] },
+      {
+        label: "Future skills",
+        items: ["creativity", "critical thinking", "communication", "lifelong learning"],
+      },
+      {
+        label: "Balanced essay",
+        items: [
+          "advantages",
+          "disadvantages",
+          { label: "linkers", sub: ["However", "On the other hand", "Despite"] },
+          "your opinion",
+        ],
+      },
     ],
     [
       [
@@ -354,34 +820,88 @@ export const STUDY_EN: LessonStudy[] = [
   {
     subject: S,
     lesson: "Grammar: Conditionals",
-    table: {
-      title: "Types of conditionals",
-      headers: ["Type", "Form", "Use", "Example"],
-      rows: [
-        ["Zero", "If + present, present", "facts", "If you heat ice, it melts."],
-        ["First", "If + present, will + inf.", "likely future", "If it rains, we'll stay home."],
-        [
-          "Second",
-          "If + past, would + inf.",
-          "unreal present/future",
-          "If I were rich, I would travel.",
+    tables: [
+      {
+        title: "Types of conditionals",
+        headers: ["Type", "If-clause", "Main clause", "Use", "Example"],
+        rows: [
+          [
+            "Zero",
+            "present simple",
+            "present simple",
+            "facts / general truths",
+            "If you heat ice, it melts.",
+          ],
+          [
+            "First",
+            "present simple",
+            "will + infinitive",
+            "real future possibility",
+            "If it rains, we'll stay home.",
+          ],
+          [
+            "Second",
+            "past simple (were)",
+            "would + infinitive",
+            "unreal / unlikely present or future",
+            "If I were rich, I would travel.",
+          ],
+          [
+            "Third",
+            "past perfect",
+            "would have + p.p.",
+            "imaginary past / regret",
+            "If she had studied, she would have passed.",
+          ],
         ],
-        [
-          "Third",
-          "If + past perfect, would have + p.p.",
-          "imaginary past",
-          "If she had studied, she would have passed.",
+      },
+      {
+        title: "Alternatives to 'if'",
+        headers: ["Word / structure", "Meaning", "Example"],
+        rows: [
+          ["unless", "if … not", "Unless you hurry, you'll miss the bus."],
+          [
+            "provided (that) / as long as",
+            "only if",
+            "I'll lend you my book provided you return it.",
+          ],
+          ["Had + subject + p.p.", "inverted 3rd conditional", "Had I known, I would have helped."],
+          ["Were + subject + to", "inverted 2nd conditional", "Were I rich, I would buy a house."],
+          ["Should + subject + verb", "inverted 1st conditional", "Should you need help, call me."],
+          ["If I were you", "advice", "If I were you, I'd see a doctor."],
         ],
-      ],
-    },
+      },
+      {
+        title: "Common mistakes",
+        headers: ["✗ Wrong", "✓ Correct"],
+        rows: [
+          ["If it will rain, we will stay home.", "If it rains, we will stay home."],
+          ["If I would be rich, I would travel.", "If I were rich, I would travel."],
+          ["If I had known, I would help you.", "If I had known, I would have helped you."],
+          ["Unless you don't study, you'll fail.", "Unless you study, you'll fail."],
+        ],
+      },
+    ],
     map: [
-      { label: "Zero & first", items: ["facts", "real future"] },
-      { label: "Second", items: ["If I were you…", "advice and dreams"] },
-      { label: "Third", items: ["regrets about the past"] },
+      { label: "Zero", items: ["facts", "If + present, present"] },
+      { label: "First", items: ["real future", "If + present, will"] },
+      {
+        label: "Second",
+        items: ["unreal present/future", "If + past, would", "If I were you (advice)"],
+      },
+      {
+        label: "Third",
+        items: ["imaginary past", "If + past perfect, would have + p.p.", "regrets"],
+      },
       {
         label: "Alternatives",
-        items: ["unless = if not", "provided that", "Had I known…", "Should you need…"],
+        items: [
+          "unless = if not",
+          "provided that / as long as",
+          { label: "inversion", sub: ["Had I known…", "Were I…", "Should you…"] },
+        ],
       },
+      { label: "Rule", items: ["never 'will' or 'would' in the if-clause"] },
     ],
     essays: [
       [
@@ -402,19 +922,55 @@ export const STUDY_EN: LessonStudy[] = [
     "Space Exploration",
     [
       ["astronaut", "a person who travels into space", "Astronauts live on the space station."],
-      ["orbit", "path around a planet or star", "The Moon orbits the Earth."],
+      ["orbit", "curved path around a planet or star", "The Moon orbits the Earth."],
       ["satellite", "object moving around a planet", "Nilesat is an Egyptian satellite."],
-      ["launch", "send into space", "The rocket was launched in 1969."],
-      ["gravity", "force that pulls objects", "There is less gravity on the Moon."],
+      ["launch", "send into the air or space", "The rocket was launched in 1969."],
+      ["gravity", "force that pulls objects together", "There is less gravity on the Moon."],
+      ["telescope", "instrument for seeing distant objects", "Astronomers use telescopes."],
+      ["galaxy", "a huge group of stars", "Our galaxy is the Milky Way."],
+      [
+        "solar system",
+        "the Sun and objects that orbit it",
+        "There are eight planets in our solar system.",
+      ],
+      ["weightless", "floating with no weight", "Astronauts feel weightless."],
+      ["mission", "a planned journey with a purpose", "The Mars mission lasted months."],
     ],
     [
-      { label: "Firsts", items: ["Sputnik 1957", "Gagarin 1961", "Apollo 11 1969 (Armstrong)"] },
+      ["explore → exploration → explorer", "verb → noun → person", "space exploration"],
+      ["astronomy → astronomer", "science → scientist", "The astronomer discovered a comet."],
+      [
+        "Sputnik 1957 / Gagarin 1961 / Apollo 11 1969",
+        "space firsts",
+        "Armstrong walked on the Moon in 1969.",
+      ],
+      ["Nilesat 101 (1998)", "Egypt in space", "Egypt launched Nilesat 101 in 1998."],
+      ["space station", "compound", "The International Space Station orbits Earth."],
+    ],
+    [
+      {
+        label: "Space firsts",
+        items: [
+          "Sputnik 1957 (first satellite)",
+          "Yuri Gagarin 1961 (first human)",
+          { label: "Apollo 11 1969", sub: ["Neil Armstrong", "first Moon walk"] },
+        ],
+      },
       {
         label: "Solar system",
-        items: ["Mercury closest", "Jupiter largest", "Mars red planet", "Saturn rings"],
+        items: [
+          "Mercury: closest to the Sun",
+          "Jupiter: largest",
+          "Mars: the Red Planet",
+          "Saturn: rings",
+        ],
       },
       { label: "Technology", items: ["rockets", "space stations", "telescopes", "satellites"] },
-      { label: "Benefits", items: ["communications", "weather forecasting", "science"] },
+      {
+        label: "Benefits",
+        items: ["communications", "GPS", "weather forecasting", "scientific discoveries"],
+      },
+      { label: "Debate", items: ["worth the money?", "or spend on Earth's problems?"] },
     ],
     [
       [
@@ -437,15 +993,47 @@ export const STUDY_EN: LessonStudy[] = [
     [
       ["visual learner", "learns best by seeing", "Visual learners like mind maps."],
       ["auditory learner", "learns best by listening", "Auditory learners enjoy discussions."],
-      ["kinaesthetic learner", "learns by doing", "Kinaesthetic learners like experiments."],
-      ["revise", "study again", "Revise before the exam."],
+      ["kinaesthetic learner", "learns best by doing", "Kinaesthetic learners like experiments."],
+      ["memorise", "learn to remember exactly", "Memorise the key dates."],
+      ["revise", "study again before an exam", "Revise every two weeks."],
       ["concentrate", "give full attention", "I can't concentrate with noise."],
+      ["summarise", "give the main points briefly", "Summarise each lesson in five lines."],
+      [
+        "distraction",
+        "something that takes your attention away",
+        "Your phone is a big distraction.",
+      ],
+      ["feedback", "comments on your work", "The teacher gave useful feedback."],
+      ["critical thinking", "analysing before judging", "Critical thinking helps solve problems."],
     ],
     [
-      { label: "Styles", items: ["visual", "auditory", "kinaesthetic"] },
-      { label: "Techniques", items: ["mind maps", "flashcards", "summaries", "group work"] },
-      { label: "Good habits", items: ["timetable", "take notes", "avoid distractions"] },
-      { label: "Thinking", items: ["critical thinking", "brainstorming", "not rote learning"] },
+      ["concentrate → concentration", "verb → noun", "Good concentration helps learning."],
+      ["motivate → motivation → motivated", "verb → noun → adj", "She is highly motivated."],
+      ["effective / effectively", "adjective / adverb", "Study effectively, not just for long."],
+      ["take notes", "collocation", "Take notes during the lesson."],
+      ["rote learning", "learning by repetition without understanding", "Avoid rote learning."],
+    ],
+    [
+      {
+        label: "Learning styles",
+        items: [
+          { label: "visual", sub: ["mind maps", "charts", "colours"] },
+          { label: "auditory", sub: ["listening", "discussion"] },
+          { label: "kinaesthetic", sub: ["experiments", "moving"] },
+        ],
+      },
+      {
+        label: "Techniques",
+        items: ["mind maps", "flashcards", "summaries", "group work", "Pomodoro"],
+      },
+      {
+        label: "Good habits",
+        items: ["timetable", "take notes", "avoid distractions", "sleep well"],
+      },
+      {
+        label: "Thinking",
+        items: ["understanding > memorising", "critical thinking", "brainstorming"],
+      },
     ],
     [
       [
@@ -466,16 +1054,37 @@ export const STUDY_EN: LessonStudy[] = [
     "The Global Classroom",
     [
       ["e-learning", "learning using the internet", "E-learning grew during the pandemic."],
+      ["virtual classroom", "an online space for lessons", "We met in a virtual classroom."],
       ["exchange student", "studies abroad for a time", "An exchange student joined our class."],
-      ["scholarship", "money to pay for study", "She won a scholarship to Cairo University."],
-      ["bilingual", "speaks two languages", "He is bilingual in Arabic and English."],
+      ["scholarship", "money given to pay for study", "She won a scholarship."],
+      ["tuition fees", "money paid for education", "Tuition fees are high abroad."],
+      ["bilingual", "able to speak two languages", "He is bilingual."],
+      ["fluent", "speaks a language easily and well", "She is fluent in English."],
       ["literacy", "ability to read and write", "Literacy rates are rising."],
+      ["collaborate", "work together", "Students collaborate on projects."],
+      ["enrol", "officially join a course", "I enrolled in an online course."],
     ],
     [
-      { label: "Online", items: ["e-learning", "webinars", "virtual classrooms"] },
-      { label: "Abroad", items: ["exchange students", "scholarships", "study abroad"] },
-      { label: "Benefits", items: ["new cultures", "languages", "collaboration"] },
-      { label: "Challenges", items: ["access", "internet", "equal opportunities"] },
+      ["educate → education → educational", "verb → noun → adjective", "educational apps"],
+      ["literate ↔ illiterate", "opposites", "Fight illiteracy."],
+      ["access to education", "collocation", "Every child needs access to education."],
+      ["study abroad", "collocation", "Many students dream of studying abroad."],
+      ["equal opportunities", "collocation", "Education gives equal opportunities."],
+    ],
+    [
+      {
+        label: "Online learning",
+        items: ["e-learning", "webinars", "virtual classrooms", "educational apps"],
+      },
+      {
+        label: "Studying abroad",
+        items: ["exchange students", "scholarships", "tuition fees", "new cultures"],
+      },
+      { label: "Benefits", items: ["flexibility", "languages", "collaboration", "global friends"] },
+      {
+        label: "Challenges",
+        items: ["internet access", "isolation", "equal opportunities", "cost"],
+      },
     ],
     [
       [
@@ -495,23 +1104,87 @@ export const STUDY_EN: LessonStudy[] = [
   {
     subject: S,
     lesson: "Grammar: Reported Speech",
-    table: {
-      title: "Changes in reported speech",
-      headers: ["Direct", "Reported"],
-      rows: [
-        ["present simple (am)", "past simple (was)"],
-        ["present continuous", "past continuous"],
-        ["past simple / present perfect", "past perfect"],
-        ["will / can / may / must", "would / could / might / had to"],
-        ["now / today / tomorrow", "then / that day / the next day"],
-        ["here / this / yesterday", "there / that / the day before"],
-      ],
-    },
+    tables: [
+      {
+        title: "Tense changes (backshift)",
+        headers: ["Direct speech", "Reported speech", "Example"],
+        rows: [
+          ["present simple", "past simple", "'I am tired.' → She said (that) she was tired."],
+          [
+            "present continuous",
+            "past continuous",
+            "'I'm watching TV.' → He said he was watching TV.",
+          ],
+          ["past simple", "past perfect", "'I saw the film.' → Ali said he had seen the film."],
+          ["present perfect", "past perfect", "'I have finished.' → She said she had finished."],
+          ["will / can / may", "would / could / might", "'I will come.' → He said he would come."],
+          ["must", "had to", "'I must go.' → She said she had to go."],
+        ],
+      },
+      {
+        title: "Time and place changes",
+        headers: ["Direct", "Reported"],
+        rows: [
+          ["now", "then"],
+          ["today / tonight", "that day / that night"],
+          ["tomorrow", "the next day / the following day"],
+          ["yesterday", "the day before / the previous day"],
+          ["next week", "the following week"],
+          ["here / this / these", "there / that / those"],
+        ],
+      },
+      {
+        title: "Questions, commands and suggestions",
+        headers: ["Type", "Rule", "Example"],
+        rows: [
+          [
+            "Yes/No question",
+            "asked + if/whether + statement order",
+            "'Are you ready?' → He asked if I was ready.",
+          ],
+          [
+            "Wh- question",
+            "asked + wh-word + statement order",
+            "'Where do you live?' → She asked where I lived.",
+          ],
+          [
+            "Command",
+            "told + object + to + infinitive",
+            "'Close the door.' → He told us to close the door.",
+          ],
+          [
+            "Negative command",
+            "told + object + not to",
+            "'Don't be late.' → Mum told me not to be late.",
+          ],
+          [
+            "Request",
+            "asked + object + to",
+            "'Please sit down.' → The doctor asked me to sit down.",
+          ],
+          ["Suggestion", "suggested + -ing / that", "'Let's go.' → He suggested going."],
+        ],
+      },
+    ],
     map: [
-      { label: "Statements", items: ["said (that)", "tense goes back"] },
-      { label: "Questions", items: ["asked if/whether", "asked + wh-word", "no question order"] },
-      { label: "Commands", items: ["told + to + inf.", "told + not to"] },
-      { label: "Suggestions", items: ["suggested + -ing", "suggested that"] },
+      {
+        label: "Statements",
+        items: [
+          "said (that)",
+          "told + person",
+          { label: "backshift", sub: ["am → was", "saw → had seen", "will → would"] },
+        ],
+      },
+      {
+        label: "Questions",
+        items: ["asked", "if / whether", "wh-word", "no question order, no question mark"],
+      },
+      { label: "Commands", items: ["told + to", "told + not to", "asked + to (requests)"] },
+      { label: "Suggestions", items: ["suggested + -ing", "suggested that…"] },
+      {
+        label: "Time & place",
+        items: ["now → then", "tomorrow → the next day", "here → there", "this → that"],
+      },
     ],
     essays: [
       [
@@ -532,28 +1205,43 @@ export const STUDY_EN: LessonStudy[] = [
     "Bright Minds",
     [
       ["genius", "an extremely clever person", "Einstein was a genius."],
+      ["talent", "natural ability", "She has a talent for music."],
       [
         "achievement",
         "something done successfully",
         "Winning the Nobel Prize is a great achievement.",
       ],
-      ["determination", "continuing despite difficulty", "Success needs determination."],
       ["discovery", "finding something new", "Zewail made an important discovery."],
-      ["curious", "wanting to learn", "Curious students ask questions."],
+      ["invention", "creating something new", "The telephone was a great invention."],
+      ["determination", "continuing despite difficulty", "Success needs determination."],
+      ["curious", "wanting to learn and know", "Curious students ask questions."],
+      ["creative", "having original ideas", "Creative people solve problems."],
+      ["breakthrough", "an important new discovery", "a medical breakthrough"],
+      ["award", "a prize for achievement", "She received an award."],
+    ],
+    [
+      ["achieve → achievement", "verb → noun", "a great achievement"],
+      ["discover → discovery", "verb → noun", "an amazing discovery"],
+      ["create → creative → creativity", "verb → adj → noun", "Creativity is important."],
+      ["intelligence → intelligent", "noun → adjective", "an intelligent student"],
+      ["win the Nobel Prize in …", "collocation", "Zewail won the Nobel Prize in Chemistry."],
     ],
     [
       {
         label: "Egyptian minds",
         items: [
-          "Ahmed Zewail (Chemistry)",
-          "Naguib Mahfouz (Literature)",
-          "Farouk El-Baz (NASA)",
+          { label: "Ahmed Zewail", sub: ["Nobel Chemistry 1999", "femtochemistry", "Zewail City"] },
+          { label: "Naguib Mahfouz", sub: ["Nobel Literature 1988"] },
+          { label: "Farouk El-Baz", sub: ["NASA Apollo missions"] },
           "Magdi Yacoub",
         ],
       },
-      { label: "World minds", items: ["Einstein", "Marie Curie"] },
-      { label: "Qualities", items: ["curious", "creative", "determined", "hard-working"] },
-      { label: "Results", items: ["discoveries", "inventions", "awards"] },
+      { label: "World minds", items: ["Einstein: relativity", "Marie Curie: radioactivity"] },
+      {
+        label: "Qualities",
+        items: ["curious", "creative", "determined", "hard-working", "patient"],
+      },
+      { label: "Results", items: ["discoveries", "inventions", "awards", "inspiring others"] },
     ],
     [
       [
@@ -575,16 +1263,51 @@ export const STUDY_EN: LessonStudy[] = [
     "The Job Market",
     [
       ["unemployment", "not having a job", "Unemployment is a problem for graduates."],
-      ["CV", "document of education and experience", "Send your CV by email."],
-      ["qualifications", "certificates of study/training", "She has excellent qualifications."],
       ["vacancy", "an available job", "There's a vacancy for an engineer."],
+      ["CV", "document of your education and experience", "Send your CV by email."],
+      ["candidate", "a person applying for a job", "There were fifty candidates."],
+      ["interview", "a meeting to assess a candidate", "I have a job interview tomorrow."],
+      ["qualifications", "certificates of study or training", "She has excellent qualifications."],
       ["skills", "abilities", "Communication skills are important."],
+      ["salary / wages", "money paid for work (monthly / weekly)", "The salary is good."],
+      ["promotion", "moving to a higher position", "He got a promotion."],
+      ["resign", "leave your job by choice", "She resigned to start a business."],
     ],
     [
-      { label: "Applying", items: ["vacancy", "CV", "cover letter", "interview"] },
-      { label: "Skills", items: ["hard skills", "soft skills: teamwork, communication"] },
-      { label: "Jobs", items: ["full-time", "part-time", "freelance"] },
-      { label: "Career", items: ["promotion", "salary", "job satisfaction"] },
+      [
+        "employ → employer / employee / employment",
+        "word family",
+        "The employer hired ten employees.",
+      ],
+      ["apply → application → applicant", "verb → noun → person", "Fill in the application form."],
+      ["apply for a job", "collocation", "I applied for a job at the bank."],
+      ["full-time / part-time / freelance", "types of work", "She works freelance."],
+      ["soft skills", "teamwork, communication…", "Employers value soft skills."],
+      [
+        "Dear Sir or Madam … Yours faithfully",
+        "formal letter",
+        "Use it when you don't know the name.",
+      ],
+    ],
+    [
+      {
+        label: "Applying",
+        items: [
+          "vacancy",
+          "CV",
+          "cover letter",
+          { label: "interview", sub: ["prepare", "dress smartly", "arrive on time"] },
+        ],
+      },
+      {
+        label: "Skills",
+        items: [
+          { label: "hard skills", sub: ["computer", "languages"] },
+          { label: "soft skills", sub: ["teamwork", "communication", "problem-solving"] },
+        ],
+      },
+      { label: "Types of work", items: ["full-time", "part-time", "freelance"] },
+      { label: "Career", items: ["salary", "promotion", "job satisfaction", "resign / retire"] },
     ],
     [
       [
@@ -605,16 +1328,46 @@ export const STUDY_EN: LessonStudy[] = [
     "Entrepreneurship",
     [
       ["entrepreneur", "a person who starts a business", "She is a young entrepreneur."],
-      ["start-up", "a new business", "The start-up sells eco-friendly bags."],
-      ["profit", "money gained after costs", "The shop made a profit."],
-      ["invest", "put money into a business", "They invested in a new app."],
-      ["risk", "possibility of loss", "Starting a business involves risk."],
+      ["start-up", "a newly established business", "The start-up sells eco-friendly bags."],
+      ["capital", "money used to start a business", "He needed capital to open a shop."],
+      ["loan", "borrowed money to pay back", "She got a bank loan."],
+      ["invest", "put money in hoping for profit", "They invested in a new app."],
+      ["profit / loss", "money gained / lost", "The shop made a profit."],
+      ["market research", "studying what customers want", "Do market research first."],
+      ["brand", "name/symbol of a company's products", "Build a strong brand."],
+      ["competition", "rivals trying to win the same customers", "There's a lot of competition."],
+      ["innovative", "new and original", "an innovative idea"],
     ],
     [
-      { label: "Starting", items: ["idea", "market research", "business plan", "capital or loan"] },
-      { label: "Running", items: ["customers", "advertising", "brand", "competition"] },
+      ["profit → profitable", "noun → adjective", "a profitable business"],
+      ["succeed → success → successful", "verb → noun → adjective", "a successful company"],
+      [
+        "innovate → innovation → innovative",
+        "verb → noun → adjective",
+        "Innovation drives growth.",
+      ],
+      ["take a risk", "collocation", "Entrepreneurs take risks."],
+      ["supply and demand", "economics", "Prices depend on supply and demand."],
+    ],
+    [
+      {
+        label: "Starting",
+        items: [
+          "an idea",
+          "market research",
+          "business plan",
+          { label: "money", sub: ["capital", "loan", "investors"] },
+        ],
+      },
+      {
+        label: "Running",
+        items: ["customers", "advertising", "brand", "competition", "products and services"],
+      },
       { label: "Results", items: ["profit", "loss", "growth"] },
-      { label: "Qualities", items: ["innovative", "risk-taking", "determined"] },
+      {
+        label: "Qualities",
+        items: ["innovative", "risk-taking", "determined", "good communicator"],
+      },
     ],
     [
       [
@@ -634,23 +1387,65 @@ export const STUDY_EN: LessonStudy[] = [
   {
     subject: S,
     lesson: "Grammar: Relative Clauses",
-    table: {
-      title: "Relative pronouns",
-      headers: ["Pronoun", "Used for", "Example"],
-      rows: [
-        ["who", "people", "The man who lives next door is a doctor."],
-        ["which", "things", "The book which I read was exciting."],
-        ["that", "people or things (defining only)", "The phone that I bought is broken."],
-        ["whose", "possession", "The girl whose bag was stolen called the police."],
-        ["where", "places", "That's the school where I studied."],
-        ["when", "times", "I remember the day when we met."],
-      ],
-    },
+    tables: [
+      {
+        title: "Relative pronouns",
+        headers: ["Pronoun", "Used for", "Example"],
+        rows: [
+          ["who", "people (subject)", "The man who lives next door is a doctor."],
+          ["whom", "people (object, formal)", "The person to whom I spoke was helpful."],
+          ["which", "things / animals", "The book which I read was exciting."],
+          ["that", "people or things (defining only)", "The phone that I bought is broken."],
+          ["whose", "possession", "The girl whose bag was stolen called the police."],
+          ["where", "places", "That's the school where I studied."],
+          ["when", "times", "I remember the day when we met."],
+          ["why", "reasons", "The reason why he left is unknown."],
+        ],
+      },
+      {
+        title: "Defining vs non-defining",
+        headers: ["", "Defining", "Non-defining"],
+        rows: [
+          ["Information", "essential – tells us which one", "extra – can be removed"],
+          ["Commas", "no commas", "between commas"],
+          ["'that'", "allowed", "not allowed"],
+          ["Omitting the pronoun", "possible if it's the object", "never"],
+          [
+            "Example",
+            "The students who passed were happy.",
+            "My brother, who lives in Cairo, is a doctor.",
+          ],
+        ],
+      },
+      {
+        title: "Common mistakes",
+        headers: ["✗ Wrong", "✓ Correct"],
+        rows: [
+          ["Cairo, that is the capital, is crowded.", "Cairo, which is the capital, is crowded."],
+          ["The man which helped me…", "The man who helped me…"],
+          ["The girl who her bag was stolen…", "The girl whose bag was stolen…"],
+          [
+            "The hotel which we stayed was nice.",
+            "The hotel where we stayed was nice. / The hotel (which) we stayed at…",
+          ],
+        ],
+      },
+    ],
     map: [
-      { label: "Defining", items: ["essential information", "no commas", "'that' allowed"] },
-      { label: "Non-defining", items: ["extra information", "commas", "no 'that'"] },
-      { label: "Omission", items: ["object pronoun can be dropped: The film (that) we watched"] },
-      { label: "Formal", items: ["whom", "to whom"] },
+      { label: "People", items: ["who", "whom (object)", "that (defining)"] },
+      { label: "Things", items: ["which", "that (defining)"] },
+      {
+        label: "Others",
+        items: ["whose: possession", "where: place", "when: time", "why: reason"],
+      },
+      {
+        label: "Defining",
+        items: ["essential", "no commas", "'that' OK", "object pronoun can be dropped"],
+      },
+      {
+        label: "Non-defining",
+        items: ["extra information", "commas", "no 'that'", "pronoun can't be dropped"],
+      },
     ],
     essays: [
       [
@@ -671,16 +1466,37 @@ export const STUDY_EN: LessonStudy[] = [
     "Success Stories",
     [
       ["perseverance", "continuing despite difficulties", "Her perseverance led to success."],
-      ["ambition", "strong wish to achieve", "He has big ambitions."],
+      ["ambition", "a strong wish to achieve", "He has big ambitions."],
       ["overcome", "deal successfully with a problem", "She overcame many obstacles."],
-      ["role model", "someone others copy", "Salah is a role model for young people."],
+      ["obstacle", "something that blocks progress", "Poverty was his biggest obstacle."],
       ["setback", "a problem that delays progress", "A setback is not the end."],
+      ["role model", "someone others admire and copy", "Salah is a role model."],
+      ["mentor", "an experienced adviser", "Her mentor guided her."],
+      ["humble beginnings", "starting life poor or simple", "He rose from humble beginnings."],
+      ["self-made", "successful through own efforts", "a self-made millionaire"],
+      ["turning point", "a moment of important change", "That match was a turning point."],
     ],
     [
-      { label: "Ingredients", items: ["ambition", "hard work", "perseverance"] },
-      { label: "Obstacles", items: ["poverty", "failure", "setbacks"] },
-      { label: "Examples", items: ["Mohamed Salah", "self-made entrepreneurs"] },
-      { label: "Lessons", items: ["never give up", "learn from failure", "dream big"] },
+      ["persevere → perseverance", "verb → noun", "Perseverance pays off."],
+      ["ambition → ambitious", "noun → adjective", "an ambitious student"],
+      ["success → successful → successfully", "noun → adj → adverb", "She finished successfully."],
+      ["never give up", "phrase", "Never give up on your dreams."],
+      ["hard work pays off", "saying", "Hard work always pays off."],
+    ],
+    [
+      { label: "Ingredients", items: ["ambition", "hard work", "perseverance", "self-confidence"] },
+      { label: "Obstacles", items: ["poverty", "failure", "setbacks", "criticism"] },
+      {
+        label: "Examples",
+        items: [
+          { label: "Mohamed Salah", sub: ["from Nagrig village", "Liverpool star"] },
+          "self-made entrepreneurs",
+        ],
+      },
+      {
+        label: "Lessons",
+        items: ["never give up", "learn from failure", "dream big", "find a mentor"],
+      },
     ],
     [
       [
@@ -702,19 +1518,51 @@ export const STUDY_EN: LessonStudy[] = [
     "Egyptian Heritage",
     [
       ["heritage", "traditions and buildings from the past", "We must protect our heritage."],
-      ["monument", "important old building or statue", "The pyramids are famous monuments."],
-      ["hieroglyphics", "ancient Egyptian writing", "Champollion read hieroglyphics."],
+      ["monument", "an important old building or statue", "The pyramids are famous monuments."],
+      ["pharaoh", "a king of ancient Egypt", "Ramses II was a powerful pharaoh."],
+      ["hieroglyphics", "ancient Egyptian picture writing", "Champollion read hieroglyphics."],
+      ["papyrus", "plant used to make paper", "They wrote on papyrus."],
+      ["mummy", "a preserved dead body", "The museum has royal mummies."],
       ["archaeologist", "studies remains of the past", "Archaeologists found a new tomb."],
-      ["preserve", "protect from damage", "Museums preserve artefacts."],
+      ["artefact", "an object made long ago", "The artefacts are 3,000 years old."],
+      ["preserve / restore", "protect / repair to original state", "The temple was restored."],
+      ["obelisk", "a tall pointed stone pillar", "An obelisk stands in Karnak."],
+    ],
+    [
+      [
+        "history → historic / historical",
+        "important in history / about history",
+        "a historic site",
+      ],
+      ["archaeology → archaeological", "noun → adjective", "an archaeological discovery"],
+      ["Giza: Pyramids & Sphinx", "site", "The Sphinx has a lion's body."],
+      [
+        "Luxor: Karnak, Valley of the Kings, Deir el-Bahari",
+        "sites",
+        "Hatshepsut's temple is at Deir el-Bahari.",
+      ],
+      ["Aswan: Abu Simbel (Ramses II)", "site", "Abu Simbel was moved to save it from the lake."],
+      ["Tutankhamun's tomb (Howard Carter, 1922)", "discovery", "Carter found the tomb in 1922."],
     ],
     [
       {
         label: "Sites",
-        items: ["Giza pyramids", "Karnak (Luxor)", "Abu Simbel", "Valley of the Kings"],
+        items: [
+          { label: "Giza", sub: ["Pyramids", "Sphinx", "Grand Egyptian Museum"] },
+          { label: "Luxor", sub: ["Karnak", "Valley of the Kings", "Deir el-Bahari"] },
+          { label: "Aswan", sub: ["Abu Simbel"] },
+          "Cairo: the Citadel",
+        ],
       },
-      { label: "Discoveries", items: ["Rosetta Stone", "Tutankhamun's tomb (Carter)"] },
-      { label: "Museums", items: ["Grand Egyptian Museum", "Egyptian Museum"] },
-      { label: "Protection", items: ["restore", "preserve", "responsible tourism"] },
+      {
+        label: "Discoveries",
+        items: ["Rosetta Stone (Champollion 1822)", "Tutankhamun's tomb (Carter)"],
+      },
+      {
+        label: "Ancient life",
+        items: ["pharaohs", "hieroglyphics", "papyrus", "mummies", "life after death"],
+      },
+      { label: "Protection", items: ["restore", "preserve", "responsible tourism", "museums"] },
     ],
     [
       [
@@ -736,18 +1584,34 @@ export const STUDY_EN: LessonStudy[] = [
     [
       ["culture", "customs, beliefs and way of life", "Every country has its own culture."],
       ["customs", "traditional ways of behaving", "Greeting customs differ."],
+      ["tradition", "a custom passed down generations", "It's a family tradition."],
+      ["cuisine", "a style of cooking", "Italian cuisine is popular."],
+      ["festival", "a special celebration", "Sham El-Nessim is a spring festival."],
       ["tolerance", "accepting differences", "Tolerance brings peace."],
-      ["stereotype", "fixed, oversimplified idea", "Avoid stereotypes about people."],
-      ["diverse", "including many types", "Our world is culturally diverse."],
+      ["stereotype", "a fixed, oversimplified idea", "Avoid stereotypes about people."],
+      ["diverse", "including many types", "a diverse society"],
+      ["etiquette", "rules of polite behaviour", "Table etiquette varies."],
+      ["hospitality", "being welcoming to guests", "Egyptians are famous for hospitality."],
+    ],
+    [
+      ["culture → cultural → culturally", "noun → adj → adverb", "cultural differences"],
+      ["tolerate → tolerance → tolerant", "verb → noun → adjective", "a tolerant person"],
+      ["diverse → diversity", "adjective → noun", "cultural diversity"],
+      ["respect other cultures", "collocation", "Always respect other cultures."],
+      ["global village", "phrase", "Technology made the world a global village."],
     ],
     [
       {
         label: "Elements",
-        items: ["language", "food (cuisine)", "festivals", "traditional dress"],
+        items: ["language", "food (cuisine)", "festivals", "traditional dress", "music"],
       },
-      { label: "Attitudes", items: ["respect", "tolerance", "open-minded"] },
-      { label: "Problems", items: ["stereotypes", "misunderstanding"] },
+      {
+        label: "Positive attitudes",
+        items: ["respect", "tolerance", "open-mindedness", "hospitality"],
+      },
+      { label: "Problems", items: ["stereotypes", "misunderstanding", "prejudice"] },
       { label: "Today", items: ["globalisation", "global village", "multicultural societies"] },
+      { label: "Egyptian culture", items: ["Sham El-Nessim", "hospitality", "Ramadan traditions"] },
     ],
     [
       [
@@ -767,26 +1631,85 @@ export const STUDY_EN: LessonStudy[] = [
   {
     subject: S,
     lesson: "Grammar: Passive Voice",
-    table: {
-      title: "Passive voice: be + past participle",
-      headers: ["Tense", "Passive form", "Example"],
-      rows: [
-        ["Present simple", "am/is/are + p.p.", "English is spoken worldwide."],
-        ["Past simple", "was/were + p.p.", "The pyramids were built long ago."],
-        ["Present continuous", "is/are being + p.p.", "The room is being cleaned."],
-        ["Present perfect", "has/have been + p.p.", "The museum has been opened."],
-        ["Future", "will be + p.p.", "The letter will be sent tomorrow."],
-        ["Modals", "modal + be + p.p.", "The work must be finished."],
-      ],
-    },
+    tables: [
+      {
+        title: "Passive forms: be + past participle",
+        headers: ["Tense", "Active", "Passive"],
+        rows: [
+          ["Present simple", "They speak English.", "English is spoken."],
+          ["Present continuous", "They are cleaning the room.", "The room is being cleaned."],
+          ["Past simple", "They built the pyramids.", "The pyramids were built."],
+          ["Past continuous", "They were building the bridge.", "The bridge was being built."],
+          ["Present perfect", "They have opened the museum.", "The museum has been opened."],
+          ["Past perfect", "They had finished the work.", "The work had been finished."],
+          ["Future", "They will send the letter.", "The letter will be sent."],
+          ["Modals", "You must finish the work.", "The work must be finished."],
+        ],
+      },
+      {
+        title: "Special passive structures",
+        headers: ["Structure", "Example"],
+        rows: [
+          ["It is said / believed / thought that…", "It is said that Alexander founded the city."],
+          ["Subject + is said / believed + to + inf.", "He is believed to live abroad."],
+          ["… to have + p.p. (past)", "The temple is thought to have been built 3,000 years ago."],
+          ["Causative: have / get something done", "I had my hair cut yesterday."],
+          ["by + agent (only if important)", "The novel was written by Naguib Mahfouz."],
+        ],
+      },
+      {
+        title: "Common mistakes",
+        headers: ["✗ Wrong", "✓ Correct"],
+        rows: [
+          ["The letter was send yesterday.", "The letter was sent yesterday."],
+          ["The room is cleaning now.", "The room is being cleaned now."],
+          ["The work must finished.", "The work must be finished."],
+          [
+            "The accident was happened.",
+            "The accident happened. (intransitive verbs have no passive)",
+          ],
+        ],
+      },
+    ],
     map: [
-      { label: "Form", items: ["be + p.p.", "by + doer (optional)"] },
+      {
+        label: "Form",
+        items: ["be + past participle", "'be' shows the tense", "by + agent (optional)"],
+      },
       {
         label: "Use",
-        items: ["action more important than doer", "doer unknown", "formal writing"],
+        items: [
+          "action more important than doer",
+          "doer unknown or obvious",
+          "formal / scientific writing",
+        ],
       },
-      { label: "Special", items: ["It is said that…", "He is believed to…"] },
-      { label: "Causative", items: ["have something done: I had my hair cut"] },
+      {
+        label: "Tenses",
+        items: [
+          "is done",
+          "is being done",
+          "was done",
+          "has been done",
+          "will be done",
+          "must be done",
+        ],
+      },
+      {
+        label: "Special",
+        items: [
+          "It is said that…",
+          "He is believed to…",
+          { label: "causative", sub: ["have something done", "get something done"] },
+        ],
+      },
+      {
+        label: "Watch out",
+        items: [
+          "intransitive verbs (happen, arrive) → no passive",
+          "use the correct past participle",
+        ],
+      },
     ],
     essays: [
       [
@@ -806,26 +1729,51 @@ export const STUDY_EN: LessonStudy[] = [
   vocab(
     "Crossroads of Civilisations",
     [
-      ["civilisation", "advanced organised society", "Egypt is a cradle of civilisation."],
-      ["crossroads", "meeting point", "Egypt is a crossroads of three continents."],
+      ["civilisation", "an advanced organised society", "Egypt is a cradle of civilisation."],
+      ["crossroads", "a meeting point", "Egypt is a crossroads of three continents."],
+      ["empire", "lands ruled by one state or ruler", "the Roman Empire"],
+      ["conquer", "take control by force", "Alexander conquered Egypt in 332 BC."],
       ["trade route", "path used by merchants", "The Silk Road was a trade route."],
+      ["merchant", "a person who buys and sells", "Merchants carried spices."],
+      ["port", "a town where ships load and unload", "Alexandria is a great port."],
       ["influence", "power to affect others", "Greek culture influenced Alexandria."],
       ["legacy", "what is left for the future", "Ancient Egypt left a great legacy."],
+      ["coexist", "live together peacefully", "Different cultures coexisted in Alexandria."],
+    ],
+    [
+      ["civilise → civilisation → civilised", "verb → noun → adjective", "an ancient civilisation"],
+      ["strategy → strategic", "noun → adjective", "a strategic location"],
+      [
+        "Library of Alexandria / Bibliotheca Alexandrina (2002)",
+        "places",
+        "The new library opened in 2002.",
+      ],
+      ["the Pharos lighthouse", "Seven Wonders", "one of the Seven Wonders of the ancient world"],
+      ["exchange ideas", "collocation", "Scholars exchanged ideas in Alexandria."],
     ],
     [
       {
         label: "Location",
-        items: ["Africa, Asia, Europe", "Mediterranean and Red Sea", "Suez Canal"],
+        items: ["Africa, Asia and Europe meet", "Mediterranean and Red Sea", "Suez Canal"],
       },
       {
-        label: "Civilisations",
-        items: ["Pharaonic", "Greek (Alexander)", "Roman", "Coptic", "Islamic"],
+        label: "Civilisations in Egypt",
+        items: [
+          "Pharaonic",
+          { label: "Greek / Ptolemaic", sub: ["Alexander 332 BC", "Cleopatra last ruler"] },
+          "Roman",
+          "Coptic",
+          "Islamic",
+        ],
       },
       {
         label: "Alexandria",
-        items: ["Library of Alexandria", "Pharos lighthouse", "Bibliotheca Alexandrina 2002"],
+        items: ["ancient Library", "Pharos lighthouse", "Bibliotheca Alexandrina 2002"],
       },
-      { label: "Exchange", items: ["trade", "ideas", "cultures"] },
+      {
+        label: "Exchange",
+        items: ["trade (Silk Road, spices)", "ideas and science", "languages and cultures"],
+      },
     ],
     [
       [

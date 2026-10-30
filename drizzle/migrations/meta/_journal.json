@@ -57,6 +57,13 @@
       "when": 1793380455818,
       "tag": "0007_tasks_reviews_summaries",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793380515818,
+      "tag": "0008_chat_messages",
+      "breakpoints": true
     }
   ]
 }

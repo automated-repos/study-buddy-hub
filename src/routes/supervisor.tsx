@@ -24,6 +24,7 @@ import { LessonProgressEditor } from "@/components/LessonProgressEditor";
 import { QuestionBank } from "@/components/QuestionBank";
 import { SummaryEditor } from "@/components/SummaryEditor";
 import { LiveRoomViewer } from "@/components/student/PomodoroRoom";
+import { LiveChat } from "@/components/LiveChat";
 import { AchievementsCard } from "@/components/Motivation";
 import { WIN_QUOTES, pickBySeed, starsFor } from "@/lib/motivation";
 import { battleBlockers, battleLessons, commonFullUnits, commonLessons, unitsOf } from "@/lib/progress";
@@ -94,7 +95,10 @@ function OverviewTab() {
         </p>
       </div>
 
-      <LiveRoomViewer />
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
+        <LiveRoomViewer />
+        <LiveChat />
+      </div>
 
       {students.length === 0 ? (
         <div className="bg-card-gradient rounded-3xl p-10 text-center border border-border">
