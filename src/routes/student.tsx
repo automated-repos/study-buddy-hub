@@ -24,6 +24,7 @@ import {
 } from "@/lib/store";
 import { getQuestionsByScope, getSummariesFor, SUBJECTS, type AIQuestion } from "@/lib/ai-content";
 import { ScopePicker } from "@/components/ScopePicker";
+import { LessonProgressEditor } from "@/components/LessonProgressEditor";
 import { supabase } from "@/lib/supabase";
 import type { BMsg, WireQ } from "./supervisor";
 
@@ -234,6 +235,13 @@ function SubjectsView() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">
+        <h3 className="font-bold text-lg">📍 وصلت لأي درس؟</h3>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+          اختر آخر درس أنهيته في كل مادة — المسابقات تكون فقط في الدروس التي أنهيتها.
+        </p>
+        <LessonProgressEditor username={profile.username} />
+      </div>
       {subjects.length === 0 ? (
         <div className="bg-card-gradient rounded-3xl p-10 text-center border border-border">
           <div className="text-6xl mb-3">📘</div>

@@ -65,6 +65,15 @@ export interface Challenge {
   winner?: string;
 }
 
+/** Last lesson a student has finished in a subject. */
+export interface LessonProgress {
+  ownerUsername: string;
+  subject: string;
+  unit: string;
+  lesson: string;
+  updatedAt: number;
+}
+
 interface DB {
   profiles: Profile[];
   subjects: Subject[];
@@ -72,6 +81,7 @@ interface DB {
   sessions: StudySession[];
   quizzes: QuizResult[];
   challenges: Challenge[];
+  progress: LessonProgress[];
   currentUsername: string | null;
 }
 
@@ -82,6 +92,7 @@ const initial: Omit<DB, "currentUsername"> = {
   sessions: [],
   quizzes: [],
   challenges: [],
+  progress: [],
 };
 
 // ============== Session (localStorage — only the username string) ==============
@@ -179,13 +190,14 @@ function mapChallenge(r: any): Challenge {
 export const DB_QUERY_KEY = ["db"] as const;
 
 async function fetchAll() {
-  const [profiles, subjects, books, sessions, quizzes, challenges] = await Promise.all([
+  const [profiles, subjects, books, sessions, quizzes, challenges, progress] = await Promise.all([
     supabase.from("profiles").select("*"),
     supabase.from("subjects").select("*"),
     supabase.from("books").select("*"),
     supabase.from("study_sessions").select("*"),
     supabase.from("quiz_results").select("*"),
     supabase.from("challenges").select("*"),
+    supabase.from("student_progress").select("*"),
   ]);
   return {
     profiles: (profiles.data ?? []).map(mapProfile),
@@ -194,6 +206,14 @@ async function fetchAll() {
     sessions: (sessions.data ?? []).map(mapSession),
     quizzes: (quizzes.data ?? []).map(mapQuiz),
     challenges: (challenges.data ?? []).map(mapChallenge),
+    // empty if the student_progress migration hasn't been applied yet
+    progress: (progress.data ?? []).map((r) => ({
+      ownerUsername: r.owner_username,
+      subject: r.subject,
+      unit: r.unit,
+      lesson: r.lesson,
+      updatedAt: r.updated_at,
+    })),
   };
 }
 
@@ -603,6 +623,33 @@ export async function setChallengeStatus(
     .from("challenges")
     .update({ status, ...(winner ? { winner } : {}) })
     .eq("id", id);
+  if (error) throw new Error(error.message);
+  await invalidate();
+}
+
+// ============== Lesson progress ==============
+/** Save the last lesson a student finished in a subject. Pass lesson = null to clear it. */
+export async function setLessonProgress(
+  username: string,
+  subject: string,
+  pos: { unit: string; lesson: string } | null,
+) {
+  const { error } = pos
+    ? await supabase.from("student_progress").upsert(
+        {
+          owner_username: username,
+          subject,
+          unit: pos.unit,
+          lesson: pos.lesson,
+          updated_at: Date.now(),
+        },
+        { onConflict: "owner_username,subject" },
+      )
+    : await supabase
+        .from("student_progress")
+        .delete()
+        .eq("owner_username", username)
+        .eq("subject", subject);
   if (error) throw new Error(error.message);
   await invalidate();
 }

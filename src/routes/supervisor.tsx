@@ -21,6 +21,8 @@ import {
 } from "@/lib/store";
 import { SUBJECTS, getQuestionPool, getQuestionsByScope } from "@/lib/ai-content";
 import { ScopePicker } from "@/components/ScopePicker";
+import { LessonProgressEditor } from "@/components/LessonProgressEditor";
+import { unfinishedInScope } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/supervisor")({
@@ -114,12 +116,22 @@ function BattlesTab() {
   const [creating, setCreating] = useState(false);
   const [activeBattle, setActiveBattle] = useState<Challenge | null>(null);
 
+  // students who haven't finished every lesson in the chosen scope
+  const blockers = [p1, p2]
+    .filter(Boolean)
+    .map((u) => ({
+      username: u,
+      name: students.find((s) => s.username === u)?.displayName ?? u,
+      missing: unfinishedInScope(db.progress, u, subject, unit || undefined, lesson || undefined),
+    }))
+    .filter((b) => b.missing.length > 0);
+
   const myBattles = db.challenges
     .filter((c) => isLiveBattle(c) && c.from === supervisorUsername)
     .sort((a, b) => b.createdAt - a.createdAt);
 
   const handleCreate = async () => {
-    if (!p1 || !p2 || p1 === p2) return;
+    if (!p1 || !p2 || p1 === p2 || blockers.length > 0) return;
     setCreating(true);
     try {
       await createLiveBattle({
@@ -209,9 +221,23 @@ function BattlesTab() {
                 </div>
               </div>
             </div>
+            {blockers.length > 0 && (
+              <div className="rounded-2xl border border-warning/40 bg-warning/10 p-4 text-sm space-y-1">
+                <p className="font-bold text-warning">⚠️ لا يمكن بدء المسابقة في هذا النطاق</p>
+                {blockers.map((b) => (
+                  <p key={b.username}>
+                    <span className="font-semibold">{b.name}</span> لم ينهِ بعد: {b.missing[0].lesson}
+                    {b.missing.length > 1 && ` (و${b.missing.length - 1} دروس أخرى)`}
+                  </p>
+                ))}
+                <p className="text-xs text-muted-foreground">
+                  اختر وحدة أو درساً أنهاه الطالبان، أو حدّث تقدّمهما من تبويب المتابعة.
+                </p>
+              </div>
+            )}
             <button
               onClick={handleCreate}
-              disabled={!p1 || !p2 || creating}
+              disabled={!p1 || !p2 || creating || blockers.length > 0}
               className="w-full bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow disabled:opacity-50"
             >
               {creating ? "جارٍ الإنشاء..." : "إنشاء المسابقة ⚡"}
@@ -356,7 +382,12 @@ function SupervisorBattleRoom({
     return () => { supabase.removeChannel(ch); };
   }, [battle.id, send, handleVerdict]);
 
+  const startBlockers = [cfg.p1, cfg.p2].filter(
+    (u) => unfinishedInScope(db.progress, u, cfg.subject, cfg.unit, cfg.lesson).length > 0,
+  );
+
   const startBattle = () => {
+    if (startBlockers.length > 0) return;
     const qs = getQuestionsByScope(cfg.subject, cfg.unit, cfg.lesson, cfg.totalRounds).map((q) => ({
       id: q.id, q: q.q, options: q.options, correct: q.correct, unit: q.unit,
     }));
@@ -400,12 +431,26 @@ function SupervisorBattleRoom({
             ))}
           </div>
 
+          {startBlockers.length > 0 && (
+            <div className="mt-6 rounded-2xl border border-warning/40 bg-warning/10 p-3 text-sm text-warning font-semibold">
+              ⚠️ لا يمكن البدء:{" "}
+              {startBlockers
+                .map((u) => db.profiles.find((x) => x.username === u)?.displayName ?? u)
+                .join(" و ")}{" "}
+              لم ينهِ دروس هذه المسابقة بعد.
+            </div>
+          )}
+
           <button
             onClick={startBattle}
-            disabled={!bothJoined}
+            disabled={!bothJoined || startBlockers.length > 0}
             className="mt-8 w-full bg-hero text-primary-foreground font-bold py-4 rounded-2xl shadow-glow disabled:opacity-40 text-xl transition"
           >
-            {bothJoined ? "ابدأ المسابقة ▶" : "انتظار الطلاب..."}
+            {startBlockers.length > 0
+              ? "الدروس غير مكتملة"
+              : bothJoined
+                ? "ابدأ المسابقة ▶"
+                : "انتظار الطلاب..."}
           </button>
         </div>
       </div>
@@ -774,6 +819,11 @@ function StudentCard({ username, index }: { username: string; index: number }) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-5">
+        <p className="text-xs text-muted-foreground mb-2">📍 آخر درس أنهاه في كل مادة</p>
+        <LessonProgressEditor username={username} compact />
       </div>
 
       {subjects.length > 0 && (

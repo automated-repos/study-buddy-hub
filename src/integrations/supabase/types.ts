@@ -218,6 +218,38 @@ export type Database = {
           },
         ]
       }
+      student_progress: {
+        Row: {
+          lesson: string
+          owner_username: string
+          subject: string
+          unit: string
+          updated_at: number
+        }
+        Insert: {
+          lesson: string
+          owner_username: string
+          subject: string
+          unit: string
+          updated_at?: number
+        }
+        Update: {
+          lesson?: string
+          owner_username?: string
+          subject?: string
+          unit?: string
+          updated_at?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_progress_owner_username_fkey"
+            columns: ["owner_username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
       subjects: {
         Row: {
           book_path: string | null
