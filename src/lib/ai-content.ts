@@ -1,17 +1,17 @@
 import type { ExtraLesson } from "./questions/types";
 import { EXTRA_EN } from "./questions/en";
-import { EXTRA_ST } from "./questions/st";
 import { EXTRA_AR } from "./questions/ar";
 import { EXTRA_HI } from "./questions/hi";
 import { EXTRA_GEO } from "./questions/geo";
 import { EXTRA_EN_2 } from "./questions/en2";
-import { EXTRA_ST_2 } from "./questions/st2";
+import { EXTRA_ST_ALL } from "./questions/st2";
 import { EXTRA_AR_2 } from "./questions/ar2";
 import { EXTRA_HI_2 } from "./questions/hi2";
 import { EXTRA_GEO_2 } from "./questions/geo2";
 import { EXTRA_FR, SUMMARIES_FR } from "./questions/fr";
 import { SUMMARIES_HI } from "./questions/hi-summaries";
 import { SUMMARIES_GEO } from "./questions/geo-summaries";
+import { SUMMARIES_ST } from "./questions/st-summaries";
 
 // Comprehensive tagged question bank — Egyptian 3rd-year secondary 2025-2026
 // Each question carries subject/unit/lesson tags so it can be reused across:
@@ -214,100 +214,7 @@ const BASE_QUESTIONS: AIQuestion[] = [
   { id: "en-u6-l4-04", subject: "إنجليزي", unit: "Unit 6: Culture & Civilisation", lesson: "Crossroads of Civilisations", q: "'Influence' in 'Egypt's influence on the ancient world' means:", options: ["The effect one thing has on another", "A type of culture", "A historical achievement", "A trade route"], correct: 0, difficulty: "medium" },
   { id: "en-u6-l4-05", subject: "إنجليزي", unit: "Unit 6: Culture & Civilisation", lesson: "Crossroads of Civilisations", q: "Which best describes Egypt's role in ancient civilisations?", options: ["A centre of knowledge, trade, and cultural exchange", "An isolated civilisation", "Influential only in Africa", "Limited influence mainly in architecture"], correct: 0, difficulty: "hard" },
 
-  // ═══════════════════════════════════════════════════════
-  // إحصاء (Statistics)
-  // ═══════════════════════════════════════════════════════
-
-  // ── Unit 1: الارتباط ── L1
-  { id: "st-u1-l1-01", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "مفهوم الارتباط", q: "إذا كان معامل الارتباط r = +0.9 فإن الارتباط بين المتغيرين:", options: ["قوي موجب", "ضعيف موجب", "قوي سالب", "معدوم"], correct: 0, difficulty: "easy" },
-  { id: "st-u1-l1-02", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "مفهوم الارتباط", q: "مخطط الانتشار يُستخدم لـ:", options: ["تمثيل العلاقة بين متغيرين", "حساب المتوسط الحسابي", "عرض البيانات الفئوية", "قياس التشتت فقط"], correct: 0, difficulty: "easy" },
-  { id: "st-u1-l1-03", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "مفهوم الارتباط", q: "الارتباط السالب التام تكون قيمته:", options: ["r = −1", "r = 0", "r = +1", "r = −0.5"], correct: 0, difficulty: "medium" },
-  { id: "st-u1-l1-04", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "مفهوم الارتباط", q: "إذا كانت نقاط مخطط الانتشار تميل للأعلى من اليسار إلى اليمين، فالارتباط:", options: ["موجب", "سالب", "معدوم", "تام"], correct: 0, difficulty: "medium" },
-  { id: "st-u1-l1-05", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "مفهوم الارتباط", q: "الارتباط المعدوم (r = 0) يعني:", options: ["لا توجد علاقة خطية بين المتغيرين", "الارتباط قوي جداً", "الارتباط ضعيف فقط", "المتغيران متساويان"], correct: 0, difficulty: "hard" },
-
-  // ── Unit 1 ── L2: معامل بيرسون
-  { id: "st-u1-l2-01", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط بيرسون", q: "تتراوح قيمة معامل الارتباط r بين:", options: ["−1 و +1", "0 و 1", "−∞ و +∞", "0 و ∞"], correct: 0, difficulty: "easy" },
-  { id: "st-u1-l2-02", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط بيرسون", q: "صيغة معامل ارتباط بيرسون تعتمد على:", options: ["الانحرافات عن المتوسط", "الرتب فقط", "الوسيط", "المنوال"], correct: 0, difficulty: "easy" },
-  { id: "st-u1-l2-03", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط بيرسون", q: "إذا كان Σ(x−x̄)(y−ȳ) = 0 فإن معامل الارتباط:", options: ["= 0", "= 1", "= −1", "غير محدد"], correct: 0, difficulty: "medium" },
-  { id: "st-u1-l2-04", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط بيرسون", q: "معامل ارتباط بيرسون يقيس:", options: ["شدة واتجاه العلاقة الخطية", "العلاقة غير الخطية فقط", "الفرق بين متوسطين", "التشتت في البيانات"], correct: 0, difficulty: "medium" },
-  { id: "st-u1-l2-05", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط بيرسون", q: "إذا كان r = 0.3 فإن العلاقة بين المتغيرين:", options: ["موجبة ضعيفة", "موجبة قوية", "سالبة ضعيفة", "معدومة تماماً"], correct: 0, difficulty: "hard" },
-
-  // ── Unit 1 ── L3: سبيرمان
-  { id: "st-u1-l3-01", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط سبيرمان", q: "معامل سبيرمان يُستخدم مع البيانات:", options: ["الرتبية أو غير المتوزعة طبيعياً", "الكمية المتوزعة طبيعياً فقط", "الكبيرة جداً", "ذات القيم السالبة"], correct: 0, difficulty: "easy" },
-  { id: "st-u1-l3-02", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط سبيرمان", q: "في معامل سبيرمان، d يمثل:", options: ["الفرق بين رتبتي كل قيمة", "مجموع الرتب", "متوسط الرتب", "الفرق بين القيمتين الأصليتين"], correct: 0, difficulty: "easy" },
-  { id: "st-u1-l3-03", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط سبيرمان", q: "صيغة معامل سبيرمان:", options: ["1 − (6Σd²) / (n(n²−1))", "1 − Σd² / n", "Σd² / (n²−1)", "6Σd / (n−1)"], correct: 0, difficulty: "medium" },
-  { id: "st-u1-l3-04", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط سبيرمان", q: "إذا كانت الرتب متطابقة تماماً، فإن معامل سبيرمان =", options: ["+1", "0", "−1", "0.5"], correct: 0, difficulty: "medium" },
-  { id: "st-u1-l3-05", subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط سبيرمان", q: "ميزة سبيرمان على بيرسون:", options: ["يطبَّق على البيانات الرتبية وغير المعلمية", "دقته أعلى دائماً", "أصعب في الحساب", "لا فرق بينهما"], correct: 0, difficulty: "hard" },
-
-  // ── Unit 2: الانحدار ── L1
-  { id: "st-u2-l1-01", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "خط الانحدار البسيط", q: "معادلة خط الانحدار:", options: ["ŷ = a + bx", "ŷ = a × bx", "ŷ = x + a", "ŷ = b / a"], correct: 0, difficulty: "easy" },
-  { id: "st-u2-l1-02", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "خط الانحدار البسيط", q: "في ŷ = a + bx، يمثل b:", options: ["ميل الخط (معامل الانحدار)", "نقطة التقاطع مع المحور الصادي", "قيمة y عند x=0", "معامل الارتباط"], correct: 0, difficulty: "medium" },
-  { id: "st-u2-l1-03", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "خط الانحدار البسيط", q: "خط الانحدار يمر دائماً بالنقطة:", options: ["(x̄ , ȳ)", "(0 , 0)", "(1 , 1)", "(a , b)"], correct: 0, difficulty: "hard" },
-  { id: "st-u2-l1-04", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "خط الانحدار البسيط", q: "طريقة المربعات الصغرى تهدف إلى:", options: ["تصغير مجموع مربعات الفروق بين الفعلي والمتنبأ", "تصغير مجموع القيم", "تكبير معامل الارتباط", "تصغير الميل فقط"], correct: 0, difficulty: "hard" },
-  { id: "st-u2-l1-05", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "خط الانحدار البسيط", q: "قيمة a في معادلة الانحدار:", options: ["قيمة y عند x = 0", "ميل الخط", "قيمة x عند y = 0", "متوسط y"], correct: 0, difficulty: "medium" },
-
-  // ── Unit 2 ── L2: التنبؤ
-  { id: "st-u2-l2-01", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "التنبؤ بالانحدار", q: "إذا كان ŷ = 2 + 3x، فقيمة y عند x = 4:", options: ["14", "12", "10", "8"], correct: 0, difficulty: "easy" },
-  { id: "st-u2-l2-02", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "التنبؤ بالانحدار", q: "التنبؤ داخل نطاق البيانات يُسمى:", options: ["استيفاء (Interpolation)", "استكمال (Extrapolation)", "ارتباط", "انحدار"], correct: 0, difficulty: "medium" },
-  { id: "st-u2-l2-03", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "التنبؤ بالانحدار", q: "التنبؤ خارج نطاق البيانات يُسمى:", options: ["استكمال (Extrapolation)", "استيفاء (Interpolation)", "تمثيل بياني", "حساب أولي"], correct: 0, difficulty: "medium" },
-  { id: "st-u2-l2-04", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "التنبؤ بالانحدار", q: "كلما كان r أقرب إلى ±1، كان التنبؤ:", options: ["أكثر دقة", "أقل دقة", "غير ممكن", "عشوائياً"], correct: 0, difficulty: "easy" },
-  { id: "st-u2-l2-05", subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "التنبؤ بالانحدار", q: "الفرق بين خط انحدار ص على س وس على ص:", options: ["المتغير التابع المستخدم في التنبؤ", "قيمة معامل الارتباط", "الميل فقط", "نقطة التقاطع فقط"], correct: 0, difficulty: "hard" },
-
-  // ── Unit 3: السلاسل الزمنية ── L1
-  { id: "st-u3-l1-01", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "مكونات السلسلة الزمنية", q: "السلسلة الزمنية هي:", options: ["بيانات مرتبة زمنياً", "بيانات مرتبة حسب الحجم", "بيانات عشوائية", "بيانات مصنفة فئوياً"], correct: 0, difficulty: "easy" },
-  { id: "st-u3-l1-02", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "مكونات السلسلة الزمنية", q: "الاتجاه العام (Trend) يمثل:", options: ["الاتجاه طويل الأجل", "التغيرات الموسمية", "التغيرات الدورية", "التغيرات العشوائية"], correct: 0, difficulty: "easy" },
-  { id: "st-u3-l1-03", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "مكونات السلسلة الزمنية", q: "التغيرات الموسمية تتكرر:", options: ["خلال فترة أقل من سنة", "كل عدة سنوات", "بصورة عشوائية", "مرة واحدة فقط"], correct: 0, difficulty: "medium" },
-  { id: "st-u3-l1-04", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "مكونات السلسلة الزمنية", q: "التغيرات الدورية تختلف عن الموسمية بأنها:", options: ["تمتد لسنوات وغير منتظمة المدة", "تتكرر كل سنة بانتظام", "منتظمة ومتوقعة", "قصيرة الأجل دائماً"], correct: 0, difficulty: "medium" },
-  { id: "st-u3-l1-05", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "مكونات السلسلة الزمنية", q: "التغيرات غير المنتظمة تنتج عن:", options: ["أحداث غير متوقعة كالكوارث", "الاتجاه العام للسوق", "العوامل الموسمية", "التخطيط الاقتصادي"], correct: 0, difficulty: "hard" },
-
-  // ── Unit 3 ── L2: المتوسطات المتحركة
-  { id: "st-u3-l2-01", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "المتوسطات المتحركة", q: "المتوسط المتحرك يُستخدم لـ:", options: ["تنعيم البيانات وإظهار الاتجاه العام", "حساب معامل الارتباط", "التنبؤ المباشر بالأسعار", "حساب معادلة الانحدار"], correct: 0, difficulty: "easy" },
-  { id: "st-u3-l2-02", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "المتوسطات المتحركة", q: "للقيم (4، 6، 8)، المتوسط المتحرك لـ 3 قيم =", options: ["6", "7", "8", "5"], correct: 0, difficulty: "easy" },
-  { id: "st-u3-l2-03", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "المتوسطات المتحركة", q: "عدد قيم المتوسط المتحرك (رتبة n) أقل من الأصلية بـ:", options: ["(n − 1)", "1 دائماً", "النصف", "الضعف"], correct: 0, difficulty: "medium" },
-  { id: "st-u3-l2-04", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "المتوسطات المتحركة", q: "لبيانات ربع سنوية يُستخدم متوسط متحرك:", options: ["رتبة 4 ثم متوسط متوسطين متتاليين", "رتبة 4 مباشرة", "رتبة 3", "رتبة 5"], correct: 0, difficulty: "hard" },
-  { id: "st-u3-l2-05", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "المتوسطات المتحركة", q: "ميزة المتوسطات المتحركة:", options: ["تُزيل التذبذبات القصيرة وتُظهر الاتجاه", "تعطي تنبؤات دقيقة دائماً", "تُظهر التغيرات الفصلية", "سهلة التفسير في كل الحالات"], correct: 0, difficulty: "medium" },
-
-  // ── Unit 3 ── L3: طريقة المربعات الصغرى للاتجاه
-  { id: "st-u3-l3-01", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "طريقة المربعات الصغرى للاتجاه", q: "في طريقة المربعات الصغرى للاتجاه، يُرمز للزمن بـ:", options: ["t أو x", "y", "a", "b"], correct: 0, difficulty: "easy" },
-  { id: "st-u3-l3-02", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "طريقة المربعات الصغرى للاتجاه", q: "نقطة الأصل في هذه الطريقة تكون:", options: ["منتصف سلسلة البيانات", "بداية السلسلة", "نهاية السلسلة", "القيمة الأكبر"], correct: 0, difficulty: "medium" },
-  { id: "st-u3-l3-03", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "طريقة المربعات الصغرى للاتجاه", q: "معادلة Ŷ = 50 + 3t تعني أن الاتجاه:", options: ["تصاعدي بمعدل 3 وحدات في الفترة", "تنازلي", "ثابت", "عشوائي"], correct: 0, difficulty: "easy" },
-  { id: "st-u3-l3-04", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "طريقة المربعات الصغرى للاتجاه", q: "b في معادلة الاتجاه العام =", options: ["Σ(t·y) / Σt²", "Σy / n", "Σt / n", "Σ(t + y) / n"], correct: 0, difficulty: "hard" },
-  { id: "st-u3-l3-05", subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "طريقة المربعات الصغرى للاتجاه", q: "a في معادلة الاتجاه عند Σt = 0 يساوي:", options: ["ȳ", "Σy / Σt", "b × ȳ", "Σt² / n"], correct: 0, difficulty: "hard" },
-
-  // ── Unit 4: الاحتمال ── L1
-  { id: "st-u4-l1-01", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "مفاهيم أساسية في الاحتمال", q: "الفضاء العيني هو:", options: ["مجموعة جميع النتائج الممكنة", "النتيجة الأكثر احتمالاً", "أي نتيجة واحدة", "مجموعة النتائج المرغوبة فقط"], correct: 0, difficulty: "easy" },
-  { id: "st-u4-l1-02", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "مفاهيم أساسية في الاحتمال", q: "احتمال الحادثة المستحيلة:", options: ["0", "1", "0.5", "∞"], correct: 0, difficulty: "easy" },
-  { id: "st-u4-l1-03", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "مفاهيم أساسية في الاحتمال", q: "عند رمي قطعة نقود، احتمال ظهور الصورة:", options: ["1/2", "1/4", "1", "1/3"], correct: 0, difficulty: "easy" },
-  { id: "st-u4-l1-04", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "مفاهيم أساسية في الاحتمال", q: "إذا كان P(A) = 0.4، فإن P(A') =", options: ["0.6", "0.4", "1.4", "0"], correct: 0, difficulty: "medium" },
-  { id: "st-u4-l1-05", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "مفاهيم أساسية في الاحتمال", q: "الحوادث المتنافية:", options: ["لا يمكن أن تقع معاً", "دائمة الوقوع", "متساوية الاحتمال", "مستقلة دائماً"], correct: 0, difficulty: "medium" },
-
-  // ── Unit 4 ── L2: قواعد الاحتمال
-  { id: "st-u4-l2-01", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "قواعد الاحتمال", q: "P(A ∪ B) = P(A) + P(B) − P(A ∩ B) هي:", options: ["قاعدة الجمع العامة", "قاعدة الضرب", "قاعدة الاحتمال الكلي", "نظرية بايز"], correct: 0, difficulty: "easy" },
-  { id: "st-u4-l2-02", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "قواعد الاحتمال", q: "الحادثتان مستقلتان إذا:", options: ["P(A ∩ B) = P(A) × P(B)", "P(A ∪ B) = 1", "P(A) = P(B)", "P(A|B) = 1"], correct: 0, difficulty: "medium" },
-  { id: "st-u4-l2-03", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "قواعد الاحتمال", q: "P(A|B) يعني:", options: ["احتمال A بشرط وقوع B", "احتمال A و B معاً", "احتمال A أو B", "احتمال عدم وقوع A"], correct: 0, difficulty: "easy" },
-  { id: "st-u4-l2-04", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "قواعد الاحتمال", q: "P(A)=0.3, P(B)=0.4, P(A∩B)=0.12 — هل A و B مستقلتان؟", options: ["نعم، 0.3 × 0.4 = 0.12", "لا، متنافيتان", "لا يمكن تحديد ذلك", "نعم لأن P(A)≠P(B)"], correct: 0, difficulty: "hard" },
-  { id: "st-u4-l2-05", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "قواعد الاحتمال", q: "للحادثتين المتنافيتين: P(A ∪ B) =", options: ["P(A) + P(B)", "P(A) × P(B)", "P(A) − P(B)", "P(A) + P(B) − 1"], correct: 0, difficulty: "medium" },
-
-  // ── Unit 4 ── L3: بايز
-  { id: "st-u4-l3-01", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "نظرية بايز", q: "نظرية بايز تُستخدم لـ:", options: ["تحديث الاحتمالات بناءً على معلومات جديدة", "حساب الاحتمالات البسيطة فقط", "إيجاد الفضاء العيني", "حساب التباديل والتوافيق"], correct: 0, difficulty: "medium" },
-  { id: "st-u4-l3-02", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "نظرية بايز", q: "الاحتمال القبلي (Prior) هو:", options: ["الاحتمال قبل الحصول على معلومات جديدة", "الاحتمال بعد التجربة", "الاحتمال الشرطي", "احتمال الفضاء العيني"], correct: 0, difficulty: "easy" },
-  { id: "st-u4-l3-03", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "نظرية بايز", q: "قانون الاحتمال الكلي يشترط أن تكون Aᵢ:", options: ["أحداثاً كاملة ومتنافية تغطي الفضاء العيني", "أحداثاً مستقلة فقط", "أحداثاً متساوية الاحتمال", "أي أحداث"], correct: 0, difficulty: "hard" },
-  { id: "st-u4-l3-04", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "نظرية بايز", q: "الاحتمال البعدي (Posterior) =", options: ["P(Aᵢ|B)", "P(B|Aᵢ)", "P(Aᵢ)", "P(B)"], correct: 0, difficulty: "medium" },
-  { id: "st-u4-l3-05", subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "نظرية بايز", q: "بايز في الطب يُمكّن من:", options: ["حساب احتمال إصابة المريض بعد نتيجة فحص", "تشخيص المرض مباشرة", "تحديد العلاج المناسب", "إجراء العمليات"], correct: 0, difficulty: "hard" },
-
-  // ── Unit 5 ── L1: المتغير العشوائي المنفصل
-  { id: "st-u5-l1-01", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "المتغير العشوائي المنفصل", q: "المتغير العشوائي المنفصل يأخذ:", options: ["قيماً محددة قابلة للعد", "قيماً في نطاق مستمر", "قيماً غير محدودة", "قيماً سالبة فقط"], correct: 0, difficulty: "easy" },
-  { id: "st-u5-l1-02", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "المتغير العشوائي المنفصل", q: "القيمة المتوقعة E(X) =", options: ["Σ [x · P(x)]", "Σ x", "Σ P(x)", "max(x)"], correct: 0, difficulty: "easy" },
-  { id: "st-u5-l1-03", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "المتغير العشوائي المنفصل", q: "Var(X) =", options: ["E(X²) − [E(X)]²", "E(X) − E(X²)", "[E(X)]²", "E(X²)"], correct: 0, difficulty: "medium" },
-  { id: "st-u5-l1-04", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "المتغير العشوائي المنفصل", q: "شرط صحة دالة التوزيع الاحتمالي:", options: ["Σ P(x) = 1 و P(x) ≥ 0 لجميع x", "Σ P(x) = 0", "P(x) يمكن أن تسالب", "Σ P(x) < 1"], correct: 0, difficulty: "medium" },
-  { id: "st-u5-l1-05", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "المتغير العشوائي المنفصل", q: "إذا E(X) = 3 و E(X²) = 13، فإن σ =", options: ["2", "√13", "3", "4"], correct: 0, difficulty: "hard" },
-
-  // ── Unit 5 ── L2: التوزيع الطبيعي
-  { id: "st-u5-l2-01", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "التوزيع الطبيعي", q: "المنحنى الطبيعي:", options: ["متماثل حول المتوسط", "منحرف نحو اليمين", "منحرف نحو اليسار", "غير منتظم"], correct: 0, difficulty: "easy" },
-  { id: "st-u5-l2-02", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "التوزيع الطبيعي", q: "في التوزيع الطبيعي:", options: ["المتوسط = الوسيط = المنوال", "المتوسط > الوسيط", "المنوال < المتوسط", "المتوسط = 0 دائماً"], correct: 0, difficulty: "easy" },
-  { id: "st-u5-l2-03", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "التوزيع الطبيعي", q: "Z-score =", options: ["(X − μ) / σ", "(X − σ) / μ", "X × μ", "X / σ"], correct: 0, difficulty: "easy" },
-  { id: "st-u5-l2-04", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "التوزيع الطبيعي", q: "في N(0,1): الانحراف المعياري =", options: ["1", "0", "0.5", "متغير"], correct: 0, difficulty: "medium" },
-  { id: "st-u5-l2-05", subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "التوزيع الطبيعي", q: "P(μ − σ < X < μ + σ) ≈", options: ["68%", "95%", "99.7%", "50%"], correct: 0, difficulty: "hard" },
+  // Statistics questions live in ./questions/st.ts and st2.ts (2026-27 curriculum).
 
   // ═══════════════════════════════════════════════════════
   // عربي (Arabic)
@@ -431,8 +338,8 @@ function expandExtra(lessons: ExtraLesson[]): AIQuestion[] {
 export const ALL_QUESTIONS: AIQuestion[] = [
   ...BASE_QUESTIONS,
   ...expandExtra([
-    ...EXTRA_EN, ...EXTRA_ST, ...EXTRA_AR, ...EXTRA_HI, ...EXTRA_GEO,
-    ...EXTRA_EN_2, ...EXTRA_ST_2, ...EXTRA_AR_2, ...EXTRA_HI_2, ...EXTRA_GEO_2,
+    ...EXTRA_EN, ...EXTRA_ST_ALL, ...EXTRA_AR, ...EXTRA_HI, ...EXTRA_GEO,
+    ...EXTRA_EN_2, ...EXTRA_AR_2, ...EXTRA_HI_2, ...EXTRA_GEO_2,
     ...EXTRA_FR,
   ]),
 ];
@@ -468,21 +375,6 @@ const BASE_SUMMARIES: AISummary[] = [
   { subject: "إنجليزي", unit: "Unit 6: Culture & Civilisation", lesson: "Grammar: Passive Voice", title: "Passive Voice", summary: "Formation and use of passive voice across all tenses; used when the action is more important than the doer.", keyPoints: ["Form: be + past participle", "Use when doer is unknown, obvious, or unimportant", "Common in scientific/historical/formal writing", "By + agent = optional in passive sentences"] },
   { subject: "إنجليزي", unit: "Unit 6: Culture & Civilisation", lesson: "Crossroads of Civilisations", title: "Crossroads of Civilisations", summary: "Egypt's unique geographical position connecting three continents and its role as a centre of ancient civilisation.", keyPoints: ["Egypt links Africa, Asia, and Europe", "Suez Canal: Mediterranean ↔ Red Sea", "Egypt was a centre of trade and knowledge exchange", "Civilisation = advanced stage of human social development"] },
 
-  // Statistics
-  { subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "مفهوم الارتباط", title: "مفهوم الارتباط", summary: "دراسة العلاقة بين متغيرين وتمثيلها بمخطط الانتشار.", keyPoints: ["r تتراوح بين −1 و +1", "r موجب = طردي، r سالب = عكسي", "r = 0 يعني غياب العلاقة الخطية", "مخطط الانتشار يُصوِّر العلاقة بيانياً"] },
-  { subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط بيرسون", title: "معامل ارتباط بيرسون", summary: "قياس شدة واتجاه العلاقة الخطية بالانحرافات عن المتوسط.", keyPoints: ["يُطبَّق على البيانات الكمية الطبيعية التوزيع", "القيم القريبة من ±1 تعني ارتباطاً قوياً", "القيم القريبة من 0 تعني ارتباطاً ضعيفاً", "r = Σ(x−x̄)(y−ȳ) / √[Σ(x−x̄)²·Σ(y−ȳ)²]"] },
-  { subject: "إحصاء", unit: "الوحدة الأولى: الارتباط", lesson: "معامل ارتباط سبيرمان", title: "معامل ارتباط سبيرمان", summary: "قياس الارتباط للبيانات الرتبية باستخدام فروق الرتب.", keyPoints: ["rs = 1 − 6Σd² / n(n²−1)", "d = فرق الرتبتين لكل زوج", "يُستخدم مع البيانات الرتبية", "لا يشترط التوزيع الطبيعي"] },
-  { subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "خط الانحدار البسيط", title: "خط الانحدار البسيط", summary: "المعادلة الخطية بطريقة المربعات الصغرى.", keyPoints: ["ŷ = a + bx", "b = Σ(x−x̄)(y−ȳ) / Σ(x−x̄)²", "a = ȳ − b·x̄", "الخط يمر دائماً بـ (x̄, ȳ)"] },
-  { subject: "إحصاء", unit: "الوحدة الثانية: الانحدار", lesson: "التنبؤ بالانحدار", title: "التنبؤ بالانحدار", summary: "استخدام معادلة الانحدار في التنبؤ وأنواعه.", keyPoints: ["استيفاء: داخل النطاق (أكثر موثوقية)", "استكمال: خارج النطاق (أقل دقة)", "الدقة ترتبط بقوة معامل الارتباط", "هناك خطان: ص على س، وس على ص"] },
-  { subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "مكونات السلسلة الزمنية", title: "مكونات السلسلة الزمنية", summary: "تحليل البيانات الزمنية عبر مكوناتها الأربعة.", keyPoints: ["الاتجاه العام: طويل الأجل", "الموسمية: خلال السنة", "الدورية: على سنوات", "غير المنتظمة: أحداث مفاجئة"] },
-  { subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "المتوسطات المتحركة", title: "المتوسطات المتحركة", summary: "تنعيم السلاسل الزمنية وإظهار الاتجاه العام.", keyPoints: ["تُقلّل تأثير التذبذبات القصيرة", "الرتبة = عدد القيم في كل متوسط", "البيانات ربع السنوية: رتبة 4 ثم مركزة", "يُفقد (n−1) قيمة من إجمالي البيانات"] },
-  { subject: "إحصاء", unit: "الوحدة الثالثة: السلاسل الزمنية", lesson: "طريقة المربعات الصغرى للاتجاه", title: "المربعات الصغرى للاتجاه", summary: "معادلة الاتجاه العام بمنهج المربعات الصغرى.", keyPoints: ["Ŷ = a + bt", "نقطة الأصل = منتصف البيانات (Σt = 0)", "b = Σ(t·y) / Σt²", "a = ȳ"] },
-  { subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "مفاهيم أساسية في الاحتمال", title: "مفاهيم أساسية في الاحتمال", summary: "الفضاء العيني والحوادث وقياس الاحتمال.", keyPoints: ["P(مستحيل)=0، P(مؤكد)=1", "P(A') = 1 − P(A)", "الحوادث المتنافية لا تجتمع", "الفضاء العيني: جميع النتائج الممكنة"] },
-  { subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "قواعد الاحتمال", title: "قواعد الاحتمال", summary: "قاعدة الجمع والضرب والاحتمال الشرطي.", keyPoints: ["P(A∪B) = P(A)+P(B)−P(A∩B)", "استقلالية: P(A∩B) = P(A)·P(B)", "P(A|B) = P(A∩B)/P(B)", "متنافيتان: P(A∪B) = P(A)+P(B)"] },
-  { subject: "إحصاء", unit: "الوحدة الرابعة: الاحتمال", lesson: "نظرية بايز", title: "نظرية بايز", summary: "تحديث الاحتمالات بالمعلومات الجديدة.", keyPoints: ["الاحتمال القبلي: قبل المعلومة", "الاحتمال البعدي: P(Aᵢ|B)", "تطبيقات: الطب، الجودة، الذكاء الاصطناعي", "قانون الاحتمال الكلي أساس بايز"] },
-  { subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "المتغير العشوائي المنفصل", title: "المتغير العشوائي المنفصل", summary: "تعريفه وحساب توقعه وتباينه.", keyPoints: ["E(X) = Σ x·P(x)", "Var(X) = E(X²) − [E(X)]²", "σ = √Var(X)", "Σ P(x) = 1 شرط أساسي"] },
-  { subject: "إحصاء", unit: "الوحدة الخامسة: المتغير العشوائي والتوزيع الطبيعي", lesson: "التوزيع الطبيعي", title: "التوزيع الطبيعي والمعياري", summary: "خصائص المنحنى الطبيعي وتحويله لمعياري.", keyPoints: ["منحنى جرسي متماثل: وسط = وسيط = منوال", "Z = (X − μ) / σ", "N(0,1): المتوسط=0، الانحراف=1", "قاعدة 68-95-99.7"] },
-
   // Arabic
   { subject: "عربي", unit: "القراءة والفهم", lesson: "مهارات القراءة", title: "مهارات القراءة والفهم", summary: "استيعاب النصوص وتحليلها من حيث الفكرة والأسلوب والمفردات السياقية.", keyPoints: ["الفكرة الرئيسية: تجمع النص كله", "الأسلوب التفسيري: يشرح ويوضح", "الأسلوب الحجاجي: يُقنع بالأدلة", "المعنى السياقي من محيط الجملة"] },
   { subject: "عربي", unit: "الأدب", lesson: "مدرسة الإحياء والبعث", title: "مدرسة الإحياء والبعث", summary: "المدرسة الكلاسيكية المحافظة على التراث.", keyPoints: ["أحمد شوقي: أمير الشعراء", "حافظ إبراهيم: شاعر النيل", "المحافظة على الأوزان والقوافي", "موضوعات: الوطنية والمدح والدين"] },
@@ -499,7 +391,7 @@ const BASE_SUMMARIES: AISummary[] = [
 
 ];
 
-export const ALL_SUMMARIES: AISummary[] = [...BASE_SUMMARIES, ...SUMMARIES_HI, ...SUMMARIES_GEO, ...SUMMARIES_FR];
+export const ALL_SUMMARIES: AISummary[] = [...BASE_SUMMARIES, ...SUMMARIES_ST, ...SUMMARIES_HI, ...SUMMARIES_GEO, ...SUMMARIES_FR];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QUERY FUNCTIONS

@@ -3,6 +3,7 @@ import type { CustomSummaryRow } from "../store";
 import type { LessonStudy } from "./types";
 import { STUDY_EN } from "./en";
 import { STUDY_ST } from "./st";
+import { STUDY_ST_2 } from "./st2";
 import { STUDY_AR } from "./ar";
 import { STUDY_HI } from "./hi";
 import { STUDY_HI_2 } from "./hi2";
@@ -15,6 +16,7 @@ export type { LessonStudy, MapBranch, MapItem, StudyTable } from "./types";
 const BUILT_IN: LessonStudy[] = [
   ...STUDY_EN,
   ...STUDY_ST,
+  ...STUDY_ST_2,
   ...STUDY_AR,
   ...STUDY_HI,
   ...STUDY_HI_2,
