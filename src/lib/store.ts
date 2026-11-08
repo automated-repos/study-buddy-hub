@@ -101,7 +101,7 @@ export interface BattleRound {
   options: string[];
   correct: number;
   lesson: string;
-  /** who buzzed first and answered */
+  /** whose turn it was (older battles: who buzzed first) */
   who: string;
   chosen: number;
   ok: boolean;
@@ -438,15 +438,19 @@ export const DEFAULT_SUBJECTS: { name: string; totalChapters: number; color: str
   { name: "عربي",    totalChapters: 16, color: "#10b981" },
   { name: "تاريخ",   totalChapters: 8,  color: "#ef4444" },
   { name: "جغرافيا", totalChapters: 14, color: "#3b82f6" },
+  { name: "فرنسي",   totalChapters: 12, color: "#ec4899" },
 ];
 
 export async function seedStudentSubjects(username: string): Promise<void> {
   const { data: existing } = await supabase
     .from("subjects")
-    .select("id")
+    .select("name")
     .eq("owner_username", username);
-  if (existing && existing.length > 0) return;
-  const rows = DEFAULT_SUBJECTS.map((s) => ({
+  // add only the subjects this student doesn't have yet (e.g. French, added later)
+  const have = new Set((existing ?? []).map((r) => r.name));
+  const missing = DEFAULT_SUBJECTS.filter((s) => !have.has(s.name));
+  if (missing.length === 0) return;
+  const rows = missing.map((s) => ({
     id: uid(),
     owner_username: username,
     name: s.name,
@@ -675,6 +679,14 @@ export function minutesToday(username: string, db: Pick<DB, "sessions">) {
 
 // ============== Live Battles ==============
 
+/** Delete a battle (and its saved result, if it finished). */
+export async function deleteBattle(id: string) {
+  const { error } = await supabase.from("challenges").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  await supabase.from("battle_results").delete().eq("battle_id", id);
+  await invalidate();
+}
+
 export function isLiveBattle(c: Challenge): boolean {
   return c.title.startsWith("[LIVE]");
 }
@@ -687,6 +699,8 @@ export interface LiveBattleConfig {
   p1: string;
   p2: string;
   totalRounds: number;
+  /** seconds each player has to answer on their turn (older battles: undefined → 30) */
+  seconds?: number;
 }
 
 export function parseLiveBattleConfig(c: Challenge): LiveBattleConfig | null {
@@ -706,6 +720,7 @@ export async function createLiveBattle(opts: {
   unit?: string;
   lesson?: string;
   totalRounds: number;
+  seconds: number;
 }): Promise<string> {
   const cfg: LiveBattleConfig = {
     subject: opts.subject,
@@ -714,6 +729,7 @@ export async function createLiveBattle(opts: {
     p1: opts.p1,
     p2: opts.p2,
     totalRounds: opts.totalRounds,
+    seconds: opts.seconds,
   };
   const id = uid();
   const { error } = await supabase.from("challenges").insert({

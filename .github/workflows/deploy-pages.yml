@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir site
           cp -r .output/public/. site/
-          rm -rf site/books                      # local textbook PDFs, not needed online
+          rm -rf site/books site/new-books       # local textbook PDFs, not needed online
           cp site/_shell.html site/index.html
           cp site/_shell.html site/404.html      # lets links like /student work on refresh
           touch site/.nojekyll

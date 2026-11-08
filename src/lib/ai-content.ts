@@ -9,6 +9,7 @@ import { EXTRA_ST_2 } from "./questions/st2";
 import { EXTRA_AR_2 } from "./questions/ar2";
 import { EXTRA_HI_2 } from "./questions/hi2";
 import { EXTRA_GEO_2 } from "./questions/geo2";
+import { EXTRA_FR, SUMMARIES_FR } from "./questions/fr";
 
 // Comprehensive tagged question bank — Egyptian 3rd-year secondary 2025-2026
 // Each question carries subject/unit/lesson tags so it can be reused across:
@@ -528,16 +529,17 @@ const DIFFICULTY = { e: "easy", m: "medium", h: "hard" } as const;
 
 function expandExtra(lessons: ExtraLesson[]): AIQuestion[] {
   const counter = new Map<string, number>(); // lesson → extra questions numbered so far
-  return lessons.flatMap(({ subject, lesson, rows }) => {
+  return lessons.flatMap(({ subject, lesson, rows, newLesson }) => {
     const base = BASE_QUESTIONS.find((q) => q.subject === subject && q.lesson === lesson);
-    if (!base) throw new Error(`Unknown lesson in extra questions: ${subject} / ${lesson}`);
-    const prefix = base.id.replace(/-\d+$/, "");
+    if (!base && !newLesson) throw new Error(`Unknown lesson in extra questions: ${subject} / ${lesson}`);
+    const prefix = base ? base.id.replace(/-\d+$/, "") : newLesson!.prefix;
+    const unit = base ? base.unit : newLesson!.unit;
     const start = counter.get(prefix) ?? 0;
     counter.set(prefix, start + rows.length);
     return rows.map(([q, right, w1, w2, w3, d], i) => ({
       id: `${prefix}-x${String(start + i + 1).padStart(2, "0")}`,
       subject,
-      unit: base.unit,
+      unit,
       lesson,
       q,
       options: [right, w1, w2, w3],
@@ -552,6 +554,7 @@ export const ALL_QUESTIONS: AIQuestion[] = [
   ...expandExtra([
     ...EXTRA_EN, ...EXTRA_ST, ...EXTRA_AR, ...EXTRA_HI, ...EXTRA_GEO,
     ...EXTRA_EN_2, ...EXTRA_ST_2, ...EXTRA_AR_2, ...EXTRA_HI_2, ...EXTRA_GEO_2,
+    ...EXTRA_FR,
   ]),
 ];
 
@@ -559,7 +562,7 @@ export const ALL_QUESTIONS: AIQuestion[] = [
 // SUMMARIES
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const ALL_SUMMARIES: AISummary[] = [
+const BASE_SUMMARIES: AISummary[] = [
   // English
   { subject: "إنجليزي", unit: "Unit 1: Health", lesson: "My Day in Hospital", title: "My Day in Hospital", summary: "Vocabulary and narrative writing about hospital settings, medical staff roles, and patient experiences using past tenses.", keyPoints: ["Key vocab: ward, surgeon, discharge, diagnose", "Past Simple for narrating hospital experiences", "Hospital departments and staff roles", "Formal vs informal language in medical contexts"] },
   { subject: "إنجليزي", unit: "Unit 1: Health", lesson: "Emergency Call", title: "Emergency Call", summary: "Language for emergency telephone calls: giving information clearly, using imperatives, and vocabulary for injuries and first aid.", keyPoints: ["State location first in an emergency call", "Key vocab: ambulance, unconscious, fracture, bleeding", "Imperative forms for giving urgent instructions", "Sequence language: first, then, immediately"] },
@@ -639,6 +642,8 @@ export const ALL_SUMMARIES: AISummary[] = [
   { subject: "جغرافيا", unit: "الوحدة الرابعة: مصر والعلاقات الدولية", lesson: "علاقات مصر الإقليمية", title: "علاقات مصر الإقليمية", summary: "علاقات مصر مع جوارها العربي والأفريقي.", keyPoints: ["عضو مؤسس في الجامعة العربية 1945", "نزاع سد النهضة ومياه النيل", "وساطة في القضية الفلسطينية", "العلاقة مع السودان: مياه وحدود وتاريخ"] },
   { subject: "جغرافيا", unit: "الوحدة الرابعة: مصر والعلاقات الدولية", lesson: "علاقات مصر الدولية", title: "علاقات مصر الدولية", summary: "علاقات مصر مع القوى الكبرى وسياستها المتوازنة.", keyPoints: ["أمريكا: السلام والمساعدات والأمن", "الصين: الحزام والطريق والاستثمار", "روسيا: الطاقة النووية والتجارة", "الاتحاد الأوروبي: الشراكة الأورومتوسطية"] },
 ];
+
+export const ALL_SUMMARIES: AISummary[] = [...BASE_SUMMARIES, ...SUMMARIES_FR];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QUERY FUNCTIONS
@@ -733,8 +738,14 @@ export function getQuestionPool(subject: string, unit?: string, lesson?: string)
 }
 
 /** Random questions from the chosen subject / unit / lesson. */
-export function getQuestionsByScope(subject: string, unit?: string, lesson?: string, count = 5): AIQuestion[] {
-  return pick(getQuestionPool(subject, unit, lesson), count);
+export function getQuestionsByScope(
+  subject: string,
+  unit?: string,
+  lesson?: string,
+  count = 5,
+  avoid?: Set<string>,
+): AIQuestion[] {
+  return pick(getQuestionPool(subject, unit, lesson), count, avoid);
 }
 
 /** Random questions from a specific list of lessons. */

@@ -25,10 +25,18 @@ import { getQuestionsByScope, getSummariesFor, SUBJECTS, type AIQuestion } from 
 import { ScopePicker } from "@/components/ScopePicker";
 import { LessonProgressEditor } from "@/components/LessonProgressEditor";
 import { subjectsMissingProgress } from "@/lib/progress";
-import { LOSE_QUOTES, WIN_QUOTES, levelFor, pickBySeed, ratingFor, starsFor } from "@/lib/motivation";
+import {
+  LOSE_QUOTES,
+  WIN_QUOTES,
+  levelFor,
+  pickBySeed,
+  ratingFor,
+  starsFor,
+} from "@/lib/motivation";
 import { AchievementsCard, RatingStars } from "@/components/Motivation";
 import { supabase } from "@/lib/supabase";
 import { logAnswers } from "@/lib/answers";
+import { markShown, seenToday } from "@/lib/seenToday";
 import { BattleHistory } from "@/components/BattleHistory";
 import { PomodoroProvider } from "@/lib/pomodoro";
 import { PomodoroRoom, StudyBar } from "@/components/student/PomodoroRoom";
@@ -42,7 +50,8 @@ export const Route = createFileRoute("/student")({
   component: StudentPage,
 });
 
-type TabKey = "today" | "subjects" | "live" | "quiz" | "summaries" | "books" | "ranking" | "challenges";
+type TabKey =
+  "today" | "subjects" | "live" | "quiz" | "summaries" | "books" | "ranking" | "challenges";
 
 function StudentPage() {
   return (
@@ -56,6 +65,10 @@ function StudentTabs() {
   const [tab, setTab] = useState<TabKey>("today");
   const profile = useCurrentProfile();
   const db = useDB();
+  // make sure students who logged in before a subject was added (e.g. French) get it too
+  useEffect(() => {
+    if (profile?.role === "student") void seedStudentSubjects(profile.username).catch(() => {});
+  }, [profile?.username, profile?.role]);
   // subjects where the student hasn't said yet how far they got
   const missing =
     db.loaded && profile?.role === "student"
@@ -170,12 +183,13 @@ function SubjectsView({ missing }: { missing: string[] }) {
         <h3 className="font-bold text-lg">📍 الدروس التي أنهيتها</h3>
         {missing.length > 0 && (
           <p className="mt-2 rounded-xl bg-warning/15 text-warning text-sm font-semibold px-3 py-2">
-            ⚠️ حدّد الدروس التي أنهيتها في: {missing.join("، ")} — لن تستطيع استخدام باقي التطبيق قبل
-            ذلك.
+            ⚠️ حدّد الدروس التي أنهيتها في: {missing.join("، ")} — لن تستطيع استخدام باقي التطبيق
+            قبل ذلك.
           </p>
         )}
         <p className="text-xs text-muted-foreground mt-0.5 mb-3">
-          علّم على كل درس أنهيته، أو على الوحدة كاملة. المسابقات تكون فقط في الدروس والوحدات التي أنهيتها أنت ومنافسك.
+          علّم على كل درس أنهيته، أو على الوحدة كاملة. المسابقات تكون فقط في الدروس والوحدات التي
+          أنهيتها أنت ومنافسك.
         </p>
         <LessonProgressEditor username={profile.username} />
       </div>
@@ -184,7 +198,8 @@ function SubjectsView({ missing }: { missing: string[] }) {
           <div className="text-6xl mb-3">📘</div>
           <h3 className="text-xl font-bold">ابدأ بتهيئة مواد المنهج</h3>
           <p className="text-muted-foreground mt-1 mb-5">
-            سيتم إضافة مواد الثانوية العامة الثالث (إنجليزي، إحصاء، عربي، تاريخ، جغرافيا) دفعةً واحدة.
+            سيتم إضافة مواد الثانوية العامة الثالث (إنجليزي، إحصاء، عربي، تاريخ، جغرافيا) دفعةً
+            واحدة.
           </p>
           <button
             onClick={handleSeed}
@@ -279,9 +294,22 @@ function QuizView() {
   const [answers, setAnswers] = useState<number[]>([]);
   const [done, setDone] = useState(false);
 
-  const start = () => {
+  const start = async () => {
     if (!selectedSubject) return;
-    setQs(getQuestionsByScope(selectedSubject, unit || undefined, lesson || undefined, count));
+    // prefer questions this student hasn't seen today
+    const seen = await seenToday([profile.username]).catch(() => new Set<string>());
+    const picked = getQuestionsByScope(
+      selectedSubject,
+      unit || undefined,
+      lesson || undefined,
+      count,
+      seen,
+    );
+    markShown(
+      [profile.username],
+      picked.map((q) => q.id),
+    );
+    setQs(picked);
     setIdx(0);
     setAnswers([]);
     setDone(false);
@@ -336,7 +364,9 @@ function QuizView() {
         >
           <option value="">— اختر —</option>
           {SUBJECTS.map((name) => (
-            <option key={name} value={name}>{name}</option>
+            <option key={name} value={name}>
+              {name}
+            </option>
           ))}
         </select>
         {selectedSubject && (
@@ -377,21 +407,33 @@ function QuizView() {
     const score = answers.reduce((a, ans, j) => a + (ans === qs[j].correct ? 1 : 0), 0);
     return (
       <div className="bg-card-gradient rounded-3xl p-8 border border-border shadow-soft max-w-xl mx-auto text-center">
-        <div className="text-6xl mb-3">{score === qs.length ? "🏆" : score >= qs.length * 0.6 ? "🎉" : "💪"}</div>
-        <h3 className="text-2xl font-bold">نتيجتك: {score} / {qs.length}</h3>
+        <div className="text-6xl mb-3">
+          {score === qs.length ? "🏆" : score >= qs.length * 0.6 ? "🎉" : "💪"}
+        </div>
+        <h3 className="text-2xl font-bold">
+          نتيجتك: {score} / {qs.length}
+        </h3>
         <p className="text-muted-foreground mt-2">
-          {score === qs.length ? "ممتاز! أداء كامل." : score >= qs.length * 0.6 ? "أداء جيد — استمر." : "حاول مرة أخرى بعد مراجعة سريعة."}
+          {score === qs.length
+            ? "ممتاز! أداء كامل."
+            : score >= qs.length * 0.6
+              ? "أداء جيد — استمر."
+              : "حاول مرة أخرى بعد مراجعة سريعة."}
         </p>
         <div className="mt-6 grid gap-2 text-right">
           {qs.map((q, i) => (
             <div key={i} className="glass rounded-2xl p-3">
               <div className="flex items-start justify-between gap-2 flex-wrap">
                 <p className="font-semibold text-sm flex-1">{q.q}</p>
-                <span className={`text-xs rounded-full px-2 py-0.5 font-bold shrink-0 ${difficultyColor[q.difficulty]}`}>
+                <span
+                  className={`text-xs rounded-full px-2 py-0.5 font-bold shrink-0 ${difficultyColor[q.difficulty]}`}
+                >
                   {difficultyLabel[q.difficulty]}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">{q.unit} • {q.lesson}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {q.unit} • {q.lesson}
+              </p>
               <p className="text-xs mt-1">
                 <span className="text-muted-foreground">إجابتك: </span>
                 <span className={answers[i] === q.correct ? "text-success" : "text-destructive"}>
@@ -418,12 +460,18 @@ function QuizView() {
   return (
     <div className="bg-card-gradient rounded-3xl p-6 border border-border shadow-soft max-w-xl mx-auto">
       <div className="flex justify-between text-sm text-muted-foreground mb-1">
-        <span>السؤال {idx + 1} من {qs.length}</span>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${difficultyColor[q.difficulty]}`}>
+        <span>
+          السؤال {idx + 1} من {qs.length}
+        </span>
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-bold ${difficultyColor[q.difficulty]}`}
+        >
           {difficultyLabel[q.difficulty]}
         </span>
       </div>
-      <p className="text-xs text-muted-foreground mb-2">{q.unit} • {q.lesson}</p>
+      <p className="text-xs text-muted-foreground mb-2">
+        {q.unit} • {q.lesson}
+      </p>
       <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-5">
         <div className="h-full bg-hero" style={{ width: `${(idx / qs.length) * 100}%` }} />
       </div>
@@ -458,7 +506,10 @@ function BooksView() {
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (!subjectId) { setUploadError("اختر المادة أولاً"); return; }
+    if (!subjectId) {
+      setUploadError("اختر المادة أولاً");
+      return;
+    }
     setUploadError("");
     setUploading(true);
     try {
@@ -498,9 +549,17 @@ function BooksView() {
             placeholder="عنوان الكتاب (اختياري)"
             className="bg-input rounded-2xl px-4 py-3 outline-none"
           />
-          <label className={`bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow text-center cursor-pointer ${uploading ? "opacity-60 cursor-not-allowed" : ""}`}>
+          <label
+            className={`bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow text-center cursor-pointer ${uploading ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
             {uploading ? "جارٍ الرفع..." : "اختر ملف PDF"}
-            <input type="file" accept="application/pdf" onChange={onFile} className="hidden" disabled={uploading} />
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={onFile}
+              className="hidden"
+              disabled={uploading}
+            />
           </label>
         </div>
         {uploadError && <p className="text-destructive text-xs mt-2">{uploadError}</p>}
@@ -592,7 +651,8 @@ function RankingView() {
               <div className="flex-1">
                 <div className="font-bold text-lg">{r.displayName}</div>
                 <div className="text-xs opacity-80">
-                  {levelFor(r.pts).icon} {levelFor(r.pts).title} • 🔥 {r.streak} يوم • اليوم {r.today} د
+                  {levelFor(r.pts).icon} {levelFor(r.pts).title} • 🔥 {r.streak} يوم • اليوم{" "}
+                  {r.today} د
                 </div>
                 <RatingStars rating={r.rating} className="text-sm mt-0.5" />
               </div>
@@ -663,13 +723,16 @@ function ChallengesView() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs rounded-full px-2 py-0.5 font-bold ${isActive ? "bg-success/20 text-success" : "bg-warning/20 text-warning"}`}>
+                      <span
+                        className={`text-xs rounded-full px-2 py-0.5 font-bold ${isActive ? "bg-success/20 text-success" : "bg-warning/20 text-warning"}`}
+                      >
                         {isActive ? "● جارٍ" : "⏳ انتظار"}
                       </span>
                       <span className="font-bold text-lg">{cfg.subject}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      ضد {opponent?.avatar ?? "🎓"} {opponent?.displayName ?? opponentUsername} • {cfg.totalRounds} جولات
+                      ضد {opponent?.avatar ?? "🎓"} {opponent?.displayName ?? opponentUsername} •{" "}
+                      {cfg.totalRounds} جولات
                     </p>
                   </div>
                   <button
@@ -693,7 +756,11 @@ function ChallengesView() {
 
 // ── Player Battle Room ────────────────────────────────────────────────────────
 function PlayerBattleRoom({
-  battle, cfg, username, db, onExit,
+  battle,
+  cfg,
+  username,
+  db,
+  onExit,
 }: {
   battle: Challenge;
   cfg: LiveBattleConfig;
@@ -701,53 +768,76 @@ function PlayerBattleRoom({
   db: ReturnType<typeof useDB>;
   onExit: () => void;
 }) {
-  type Phase = "lobby" | "question" | "i_buzzed" | "they_buzzed" | "waiting_verdict" | "round_result" | "done";
+  type Phase =
+    "lobby" | "my_turn" | "their_turn" | "waiting_verdict" | "round_result" | "done" | "cancelled";
   const [phase, setPhase] = useState<Phase>("lobby");
   const [questions, setQuestions] = useState<WireQ[]>([]);
+  const [turns, setTurns] = useState<string[]>([]);
+  const [seconds, setSeconds] = useState(cfg.seconds ?? 30);
   const [qi, setQi] = useState(0);
-  const [buzzer, setBuzzer] = useState<string | null>(null);
   const [scores, setScores] = useState({ p1: 0, p2: 0 });
-  const [lastVerdict, setLastVerdict] = useState<{ ok: boolean; opt: number } | null>(null);
+  const [lastVerdict, setLastVerdict] = useState<{
+    ok: boolean;
+    opt: number;
+    who: string;
+    timeout: boolean;
+  } | null>(null);
   const [winner, setWinner] = useState<string | null>(null);
+  const [deadline, setDeadline] = useState(0);
+  const [now, setNow] = useState(Date.now());
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
+  const turnsRef = useRef<string[]>([]);
+  const secondsRef = useRef(seconds);
 
   const send = useCallback((msg: BMsg) => {
     channelRef.current?.send({ type: "broadcast", event: "b", payload: msg });
   }, []);
 
   useEffect(() => {
+    if (phase !== "my_turn" && phase !== "their_turn") return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [phase]);
+
+  useEffect(() => {
     const ch = supabase.channel(`battle:${battle.id}`);
+    const beginTurn = (index: number) => {
+      setQi(index);
+      setLastVerdict(null);
+      setDeadline(Date.now() + secondsRef.current * 1000);
+      setNow(Date.now());
+      setPhase(turnsRef.current[index] === username ? "my_turn" : "their_turn");
+    };
 
     ch.on("broadcast", { event: "b" }, ({ payload }) => {
       const msg = payload as BMsg;
       switch (msg.t) {
         case "START":
           setQuestions(msg.qs);
-          setQi(0);
-          setPhase("question");
-          break;
-        case "BUZZED":
-          setBuzzer(msg.who);
-          setPhase(msg.who === username ? "i_buzzed" : "they_buzzed");
+          setTurns(msg.turns);
+          turnsRef.current = msg.turns;
+          setSeconds(msg.seconds);
+          secondsRef.current = msg.seconds;
+          beginTurn(0);
           break;
         case "VERDICT":
           setScores({ p1: msg.p1, p2: msg.p2 });
-          setLastVerdict({ ok: msg.ok, opt: msg.opt });
+          setLastVerdict({ ok: msg.ok, opt: msg.opt, who: msg.who, timeout: !!msg.timeout });
           setPhase("round_result");
           break;
         case "NEXT":
-          setQi(msg.qi);
-          setBuzzer(null);
-          setLastVerdict(null);
-          setPhase("question");
+          beginTurn(msg.qi);
           break;
         case "DONE":
           setScores({ p1: msg.p1, p2: msg.p2 });
           setWinner(msg.winner);
           setPhase("done");
+          break;
+        case "CANCEL":
+          setPhase("cancelled");
           break;
       }
     });
@@ -757,16 +847,13 @@ function PlayerBattleRoom({
     });
 
     channelRef.current = ch;
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+    };
   }, [battle.id, username, send]);
 
-  const buzz = () => {
-    if (phaseRef.current !== "question") return;
-    send({ t: "BUZZ", who: username, qi, ts: Date.now() });
-  };
-
   const answer = (opt: number) => {
-    if (phaseRef.current !== "i_buzzed") return;
+    if (phaseRef.current !== "my_turn") return;
     setPhase("waiting_verdict");
     send({ t: "ANSWER", who: username, opt, qi });
   };
@@ -776,7 +863,25 @@ function PlayerBattleRoom({
   const theirScore = isP1 ? scores.p2 : scores.p1;
   const opponentUsername = isP1 ? cfg.p2 : cfg.p1;
   const opponent = db.profiles.find((p) => p.username === opponentUsername);
+  const nameOf = (u: string) =>
+    u === username ? "أنت" : (db.profiles.find((p) => p.username === u)?.displayName ?? u);
   const q = questions[qi];
+  const left = Math.max(0, Math.ceil((deadline - now) / 1000));
+
+  if (phase === "cancelled") {
+    return (
+      <div className="bg-card-gradient rounded-3xl p-10 text-center border border-border shadow-soft max-w-md mx-auto">
+        <div className="text-6xl mb-4">🗑️</div>
+        <h3 className="text-2xl font-bold">ألغى المشرف هذه المسابقة</h3>
+        <button
+          onClick={onExit}
+          className="mt-6 bg-hero text-primary-foreground font-bold px-8 py-3 rounded-2xl shadow-glow"
+        >
+          رجوع
+        </button>
+      </div>
+    );
+  }
 
   // Lobby
   if (phase === "lobby") {
@@ -787,10 +892,22 @@ function PlayerBattleRoom({
         <p className="text-muted-foreground mt-1">
           ضد {opponent?.avatar ?? "🎓"} {opponent?.displayName ?? opponentUsername}
         </p>
+        <p className="text-sm mt-2">
+          {cfg.totalRounds} سؤالاً بالدور • {cfg.seconds ?? 30} ثانية لكل إجابة
+        </p>
         <div className="mt-6 flex items-center justify-center gap-2 text-muted-foreground">
-          <div className="w-2 h-2 rounded-full bg-warning animate-bounce" style={{ animationDelay: "0ms" }} />
-          <div className="w-2 h-2 rounded-full bg-warning animate-bounce" style={{ animationDelay: "150ms" }} />
-          <div className="w-2 h-2 rounded-full bg-warning animate-bounce" style={{ animationDelay: "300ms" }} />
+          <div
+            className="w-2 h-2 rounded-full bg-warning animate-bounce"
+            style={{ animationDelay: "0ms" }}
+          />
+          <div
+            className="w-2 h-2 rounded-full bg-warning animate-bounce"
+            style={{ animationDelay: "150ms" }}
+          />
+          <div
+            className="w-2 h-2 rounded-full bg-warning animate-bounce"
+            style={{ animationDelay: "300ms" }}
+          />
           <span className="mr-2 text-sm">انتظار المشرف للبدء</span>
         </div>
         <button onClick={onExit} className="mt-8 text-xs text-muted-foreground hover:underline">
@@ -826,11 +943,15 @@ function PlayerBattleRoom({
           <div className="text-xl text-muted-foreground self-center">vs</div>
           <div className="text-center">
             <div className="text-4xl font-black">{theirScore}</div>
-            <div className="text-xs text-muted-foreground mt-1">{opponent?.displayName ?? opponentUsername}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {opponent?.displayName ?? opponentUsername}
+            </div>
           </div>
         </div>
-        <button onClick={onExit}
-          className="mt-8 bg-hero text-primary-foreground font-bold px-8 py-3 rounded-2xl shadow-glow">
+        <button
+          onClick={onExit}
+          className="mt-8 bg-hero text-primary-foreground font-bold px-8 py-3 rounded-2xl shadow-glow"
+        >
           خروج
         </button>
       </div>
@@ -838,63 +959,79 @@ function PlayerBattleRoom({
   }
 
   // Active game
+  const turnWho = turns[qi];
   return (
     <div className="space-y-4 max-w-md mx-auto">
       {/* Score bar */}
       <div className="bg-card-gradient rounded-2xl p-4 border border-border flex items-center justify-between">
-        <div className="text-center">
+        <div
+          className={`text-center rounded-xl px-2 ${turnWho === username ? "ring-2 ring-primary" : ""}`}
+        >
           <div className="text-3xl font-black">{myScore}</div>
           <div className="text-xs text-muted-foreground">أنا</div>
         </div>
         <div className="text-center">
-          <div className="text-sm font-bold text-muted-foreground">جولة</div>
-          <div className="text-xl font-black">{qi + 1} / {cfg.totalRounds}</div>
+          <div className="text-sm font-bold text-muted-foreground">سؤال</div>
+          <div className="text-xl font-black">
+            {qi + 1} / {questions.length}
+          </div>
         </div>
-        <div className="text-center">
+        <div
+          className={`text-center rounded-xl px-2 ${turnWho === opponentUsername ? "ring-2 ring-primary" : ""}`}
+        >
           <div className="text-3xl font-black">{theirScore}</div>
-          <div className="text-xs text-muted-foreground">{opponent?.displayName ?? opponentUsername}</div>
+          <div className="text-xs text-muted-foreground">
+            {opponent?.displayName ?? opponentUsername}
+          </div>
         </div>
       </div>
 
       {q && (
         <div className="bg-card-gradient rounded-3xl p-6 border border-border shadow-soft">
-          <p className="text-xs text-muted-foreground mb-2">{q.unit}</p>
-          <h3 className="text-xl font-bold mb-6 leading-relaxed text-center">{q.q}</h3>
+          <p className="text-xs text-muted-foreground mb-2">{q.lesson ?? q.unit}</p>
+          <h3 className="text-xl font-bold mb-4 leading-relaxed text-center">{q.q}</h3>
 
-          {/* BUZZ button */}
-          {phase === "question" && (
-            <button
-              onPointerDown={buzz}
-              className="w-full h-36 bg-hero text-primary-foreground text-4xl font-black rounded-3xl shadow-glow transition-transform active:scale-95 select-none touch-none"
-              style={{ WebkitUserSelect: "none" }}
+          {(phase === "my_turn" || phase === "their_turn") && (
+            <div
+              className={`text-center mb-4 font-mono text-3xl font-black ${left <= 5 ? "text-destructive animate-pulse" : ""}`}
             >
-              🔔 اضغط أولاً!
-            </button>
+              ⏱ {left}
+              <span className="text-xs font-sans font-normal text-muted-foreground mr-2">
+                من {seconds} ثانية
+              </span>
+            </div>
           )}
 
-          {/* Answer options when I buzzed */}
-          {phase === "i_buzzed" && (
+          {/* My turn: choose the answer before time runs out */}
+          {phase === "my_turn" && (
             <div className="space-y-3">
-              <p className="text-success font-bold text-sm text-center mb-3">✅ أنت الأول! اختر الإجابة:</p>
+              <p className="text-success font-bold text-sm text-center mb-3">
+                🎯 دورك! اختر الإجابة:
+              </p>
               {q.options.map((opt, i) => (
-                <button key={i} onClick={() => answer(i)}
-                  className="w-full text-right glass rounded-2xl p-4 hover:bg-primary/20 border border-transparent hover:border-primary transition font-semibold">
+                <button
+                  key={i}
+                  onClick={() => answer(i)}
+                  disabled={left === 0}
+                  className="w-full text-right glass rounded-2xl p-4 hover:bg-primary/20 border border-transparent hover:border-primary transition font-semibold disabled:opacity-50"
+                >
                   {opt}
                 </button>
               ))}
             </div>
           )}
 
-          {/* Opponent buzzed */}
-          {phase === "they_buzzed" && (
-            <div className="text-center py-8">
+          {/* Opponent's turn: see the question while they answer */}
+          {phase === "their_turn" && (
+            <div className="text-center py-6">
               <div className="text-5xl mb-3">⏳</div>
-              <p className="text-lg font-bold">{buzzer} ضغط أولاً!</p>
-              <p className="text-muted-foreground text-sm mt-1">ينتظر إجابته...</p>
+              <p className="text-lg font-bold">دور {nameOf(turnWho)}</p>
+              <p className="text-muted-foreground text-sm mt-1">
+                فكّر في الإجابة… سؤالك القادم بعد قليل
+              </p>
             </div>
           )}
 
-          {/* Waiting for server verdict after my answer */}
           {phase === "waiting_verdict" && (
             <div className="text-center py-8">
               <div className="text-5xl animate-spin mb-3">⚙️</div>
@@ -902,21 +1039,34 @@ function PlayerBattleRoom({
             </div>
           )}
 
-          {/* Round result */}
           {phase === "round_result" && lastVerdict && (
-            <div className={`text-center py-4 rounded-2xl border ${lastVerdict.ok ? "bg-success/10 border-success/30" : "bg-destructive/10 border-destructive/30"}`}>
-              <div className="text-6xl mb-2">{lastVerdict.ok ? "✅" : "❌"}</div>
+            <div
+              className={`text-center py-4 rounded-2xl border ${lastVerdict.ok ? "bg-success/10 border-success/30" : "bg-destructive/10 border-destructive/30"}`}
+            >
+              <div className="text-6xl mb-2">
+                {lastVerdict.timeout ? "⏱" : lastVerdict.ok ? "✅" : "❌"}
+              </div>
               <p className="text-lg font-bold">
-                {lastVerdict.ok
-                  ? (buzzer === username ? "إجابة صحيحة! +1 نقطة 🎉" : `${buzzer} أجاب صح`)
-                  : (buzzer === username ? "إجابة خاطئة!" : `${buzzer} أجاب خطأ`)}
+                {lastVerdict.timeout
+                  ? lastVerdict.who === username
+                    ? "انتهى وقتك!"
+                    : `انتهى وقت ${nameOf(lastVerdict.who)}`
+                  : lastVerdict.ok
+                    ? lastVerdict.who === username
+                      ? "إجابة صحيحة! +1 نقطة 🎉"
+                      : `${nameOf(lastVerdict.who)} أجاب صح`
+                    : lastVerdict.who === username
+                      ? "إجابة خاطئة!"
+                      : `${nameOf(lastVerdict.who)} أجاب خطأ`}
               </p>
               {!lastVerdict.ok && (
                 <p className="text-sm text-muted-foreground mt-1">
                   الصحيحة: {q.options[q.correct]}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground mt-3 animate-pulse">السؤال التالي خلال ثانية...</p>
+              <p className="text-xs text-muted-foreground mt-3 animate-pulse">
+                السؤال التالي خلال ثانية...
+              </p>
             </div>
           )}
         </div>

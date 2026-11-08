@@ -6,10 +6,18 @@ import { STUDY_ST } from "./st";
 import { STUDY_AR } from "./ar";
 import { STUDY_HI } from "./hi";
 import { STUDY_GEO } from "./geo";
+import { STUDY_FR } from "./fr";
 
 export type { LessonStudy, MapBranch, MapItem, StudyTable } from "./types";
 
-const BUILT_IN: LessonStudy[] = [...STUDY_EN, ...STUDY_ST, ...STUDY_AR, ...STUDY_HI, ...STUDY_GEO];
+const BUILT_IN: LessonStudy[] = [
+  ...STUDY_EN,
+  ...STUDY_ST,
+  ...STUDY_AR,
+  ...STUDY_HI,
+  ...STUDY_GEO,
+  ...STUDY_FR,
+];
 
 /** Everything shown for a lesson in the summaries tab and essay practice. */
 export interface LessonMaterial extends LessonStudy {

@@ -39,7 +39,7 @@ export function BattleHistory({
           <Box label="خسارة" value={stats.losses} cls="text-destructive" />
           <Box label="تعادل" value={stats.draws} />
           <Box
-            label="دقة الإجابة بعد الضغط أولاً"
+            label="دقة إجاباته في المسابقات"
             value={
               stats.rounds.length
                 ? `${Math.round((stats.rounds.filter((r) => r.ok).length / stats.rounds.length) * 100)}%`
@@ -126,7 +126,7 @@ function Card({
             <tr className="text-xs text-muted-foreground">
               <th className="text-right p-2">#</th>
               <th className="text-right p-2">السؤال</th>
-              <th className="text-right p-2">ضغط أولاً</th>
+              <th className="text-right p-2">الدور</th>
               <th className="text-right p-2">إجابته</th>
               <th className="text-right p-2">الصحيحة</th>
             </tr>
@@ -142,7 +142,7 @@ function Card({
                 <td className="p-2 whitespace-nowrap">{person(r.who)?.displayName ?? r.who}</td>
                 <td className={`p-2 ${r.ok ? "text-success" : "text-destructive"}`}>
                   {r.ok ? "✓ " : "✗ "}
-                  {r.options[r.chosen]}
+                  {r.chosen < 0 ? "⏱ انتهى الوقت" : r.options[r.chosen]}
                 </td>
                 <td className="p-2 text-success">{r.options[r.correct]}</td>
               </tr>

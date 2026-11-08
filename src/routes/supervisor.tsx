@@ -12,6 +12,7 @@ import {
   parseLiveBattleConfig,
   dateKey,
   saveBattleResult,
+  deleteBattle,
   type BattleRound,
   setChallengeStatus,
   setSubjectBook,
@@ -31,9 +32,16 @@ import { BattleHistory } from "@/components/BattleHistory";
 import { LiveRoomViewer } from "@/components/student/PomodoroRoom";
 import { LiveChat } from "@/components/LiveChat";
 import { logAnswers } from "@/lib/answers";
+import { markShown, seenToday } from "@/lib/seenToday";
 import { AchievementsCard } from "@/components/Motivation";
 import { WIN_QUOTES, pickBySeed, starsFor } from "@/lib/motivation";
-import { battleBlockers, battleLessons, commonFullUnits, commonLessons, unitsOf } from "@/lib/progress";
+import {
+  battleBlockers,
+  battleLessons,
+  commonFullUnits,
+  commonLessons,
+  unitsOf,
+} from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/supervisor")({
@@ -41,9 +49,19 @@ export const Route = createFileRoute("/supervisor")({
   component: SupervisorPage,
 });
 
-type TabKey = "overview" | "results" | "sessions" | "subjects" | "battles" | "questions" | "summaries";
+type TabKey =
+  "overview" | "results" | "sessions" | "subjects" | "battles" | "questions" | "summaries";
 
-const COLORS = ["#f472b6", "#60a5fa", "#34d399", "#fbbf24", "#a78bfa", "#fb7185", "#22d3ee", "#facc15"];
+const COLORS = [
+  "#f472b6",
+  "#60a5fa",
+  "#34d399",
+  "#fbbf24",
+  "#a78bfa",
+  "#fb7185",
+  "#22d3ee",
+  "#facc15",
+];
 
 // ── Battle realtime types ─────────────────────────────────────────────────────
 export interface WireQ {
@@ -55,15 +73,23 @@ export interface WireQ {
   subject?: string;
   lesson?: string;
 }
+/** Live battle messages. Questions go by turns: turns[i] is the player who answers question i. */
 export type BMsg =
   | { t: "JOIN"; who: string }
-  | { t: "START"; qs: WireQ[] }
-  | { t: "BUZZ"; who: string; qi: number; ts: number }
-  | { t: "BUZZED"; who: string; qi: number }
+  | { t: "START"; qs: WireQ[]; turns: string[]; seconds: number }
   | { t: "ANSWER"; who: string; opt: number; qi: number }
-  | { t: "VERDICT"; ok: boolean; opt: number; p1: number; p2: number }
+  | {
+      t: "VERDICT";
+      ok: boolean;
+      opt: number;
+      p1: number;
+      p2: number;
+      who: string;
+      timeout?: boolean;
+    }
   | { t: "NEXT"; qi: number }
-  | { t: "DONE"; winner: string | null; p1: number; p2: number };
+  | { t: "DONE"; winner: string | null; p1: number; p2: number }
+  | { t: "CANCEL" };
 
 function SupervisorPage() {
   const [tab, setTab] = useState<TabKey>("overview");
@@ -72,13 +98,27 @@ function SupervisorPage() {
     <AppShell
       tabs={
         <>
-          <Tab active={tab === "overview"} onClick={() => setTab("overview")}>📊 المتابعة</Tab>
-          <Tab active={tab === "results"} onClick={() => setTab("results")}>📈 النتائج والأخطاء</Tab>
-          <Tab active={tab === "sessions"} onClick={() => setTab("sessions")}>🕒 الجلسات</Tab>
-          <Tab active={tab === "subjects"} onClick={() => setTab("subjects")}>📘 إدارة المواد</Tab>
-          <Tab active={tab === "battles"} onClick={() => setTab("battles")}>⚔️ مسابقات حية</Tab>
-          <Tab active={tab === "questions"} onClick={() => setTab("questions")}>📝 بنك الأسئلة</Tab>
-          <Tab active={tab === "summaries"} onClick={() => setTab("summaries")}>📚 الملخصات والمقالي</Tab>
+          <Tab active={tab === "overview"} onClick={() => setTab("overview")}>
+            📊 المتابعة
+          </Tab>
+          <Tab active={tab === "results"} onClick={() => setTab("results")}>
+            📈 النتائج والأخطاء
+          </Tab>
+          <Tab active={tab === "sessions"} onClick={() => setTab("sessions")}>
+            🕒 الجلسات
+          </Tab>
+          <Tab active={tab === "subjects"} onClick={() => setTab("subjects")}>
+            📘 إدارة المواد
+          </Tab>
+          <Tab active={tab === "battles"} onClick={() => setTab("battles")}>
+            ⚔️ مسابقات حية
+          </Tab>
+          <Tab active={tab === "questions"} onClick={() => setTab("questions")}>
+            📝 بنك الأسئلة
+          </Tab>
+          <Tab active={tab === "summaries"} onClick={() => setTab("summaries")}>
+            📚 الملخصات والمقالي
+          </Tab>
         </>
       }
     >
@@ -154,7 +194,8 @@ function BattlesTab() {
   const [subject, setSubject] = useState(SUBJECTS[0]);
   const [unit, setUnit] = useState("");
   const [lesson, setLesson] = useState("");
-  const [rounds, setRounds] = useState(5);
+  const [rounds, setRounds] = useState(10);
+  const [seconds, setSeconds] = useState(30);
   const [creating, setCreating] = useState(false);
   const [activeBattle, setActiveBattle] = useState<Challenge | null>(null);
 
@@ -162,7 +203,13 @@ function BattlesTab() {
   const pair = p1 && p2 ? [p1, p2] : [];
   const shared = pair.length ? commonLessons(db.progress, pair, subject) : [];
   const fullUnits = pair.length ? commonFullUnits(db.progress, pair, subject) : [];
-  const scopeLessons = battleLessons(db.progress, pair, subject, unit || undefined, lesson || undefined);
+  const scopeLessons = battleLessons(
+    db.progress,
+    pair,
+    subject,
+    unit || undefined,
+    lesson || undefined,
+  );
   const blocked =
     pair.length > 0 &&
     battleBlockers(db.progress, pair, subject, unit || undefined, lesson || undefined).length > 0;
@@ -183,15 +230,28 @@ function BattlesTab() {
     .filter((c) => isLiveBattle(c) && c.from === supervisorUsername)
     .sort((a, b) => b.createdAt - a.createdAt);
 
+  const availableQs = getQuestionsFromLessons(subject, scopeLessons, 100000).length;
+
+  const removeBattle = async (b: Challenge) => {
+    if (!confirm("حذف هذه المسابقة نهائياً؟")) return;
+    notifyCancelled(b.id);
+    await deleteBattle(b.id).catch((e: Error) => alert("تعذّر الحذف: " + e.message));
+  };
+
   const handleCreate = async () => {
     if (!p1 || !p2 || p1 === p2 || blocked) return;
     setCreating(true);
     try {
       await createLiveBattle({
-        supervisorUsername, p1, p2, subject,
-        unit: unit || undefined, lesson: lesson || undefined,
-        // a single lesson may have fewer questions than the chosen rounds
-        totalRounds: Math.min(rounds, getQuestionsFromLessons(subject, scopeLessons, 1000).length),
+        supervisorUsername,
+        p1,
+        p2,
+        subject,
+        unit: unit || undefined,
+        lesson: lesson || undefined,
+        // can't ask more questions than the chosen lessons have
+        totalRounds: Math.max(1, Math.min(rounds, availableQs)),
+        seconds: Math.max(5, Math.min(600, seconds)),
       });
     } finally {
       setCreating(false);
@@ -232,35 +292,64 @@ function BattlesTab() {
             <div className="grid md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">الطالب الأول</label>
-                <select value={p1} onChange={(e) => setP1(e.target.value)}
-                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none">
+                <select
+                  value={p1}
+                  onChange={(e) => setP1(e.target.value)}
+                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none"
+                >
                   <option value="">— اختر —</option>
-                  {students.filter((s) => s.username !== p2).map((s) => (
-                    <option key={s.username} value={s.username}>{s.avatar} {s.displayName}</option>
-                  ))}
+                  {students
+                    .filter((s) => s.username !== p2)
+                    .map((s) => (
+                      <option key={s.username} value={s.username}>
+                        {s.avatar} {s.displayName}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">الطالب الثاني</label>
-                <select value={p2} onChange={(e) => setP2(e.target.value)}
-                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none">
+                <select
+                  value={p2}
+                  onChange={(e) => setP2(e.target.value)}
+                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none"
+                >
                   <option value="">— اختر —</option>
-                  {students.filter((s) => s.username !== p1).map((s) => (
-                    <option key={s.username} value={s.username}>{s.avatar} {s.displayName}</option>
-                  ))}
+                  {students
+                    .filter((s) => s.username !== p1)
+                    .map((s) => (
+                      <option key={s.username} value={s.username}>
+                        {s.avatar} {s.displayName}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">المادة</label>
-                <select value={subject}
-                  onChange={(e) => { setSubject(e.target.value); setUnit(""); setLesson(""); }}
-                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none">
-                  {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                <select
+                  value={subject}
+                  onChange={(e) => {
+                    setSubject(e.target.value);
+                    setUnit("");
+                    setLesson("");
+                  }}
+                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none"
+                >
+                  {SUBJECTS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
-                <label className="block text-xs text-muted-foreground mb-1 mt-3">نطاق الأسئلة</label>
-                <select value={scopeValue} onChange={(e) => onScope(e.target.value)}
+                <label className="block text-xs text-muted-foreground mb-1 mt-3">
+                  نطاق الأسئلة
+                </label>
+                <select
+                  value={scopeValue}
+                  onChange={(e) => onScope(e.target.value)}
                   disabled={pair.length === 0 || shared.length === 0}
-                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none disabled:opacity-50">
+                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none disabled:opacity-50"
+                >
                   {pair.length === 0 ? (
                     <option value="">اختر الطالبين أولاً</option>
                   ) : shared.length === 0 ? (
@@ -272,10 +361,16 @@ function BattlesTab() {
                         .filter((u) => shared.some((l) => l.unit === u))
                         .map((u) => (
                           <optgroup key={u} label={u}>
-                            {fullUnits.includes(u) && <option value={`u:${u}`}>✅ الوحدة كاملة</option>}
-                            {shared.filter((l) => l.unit === u).map((l) => (
-                              <option key={l.lesson} value={`l:${u}\u0001${l.lesson}`}>{l.lesson}</option>
-                            ))}
+                            {fullUnits.includes(u) && (
+                              <option value={`u:${u}`}>✅ الوحدة كاملة</option>
+                            )}
+                            {shared
+                              .filter((l) => l.unit === u)
+                              .map((l) => (
+                                <option key={l.lesson} value={`l:${u}\u0001${l.lesson}`}>
+                                  {l.lesson}
+                                </option>
+                              ))}
                           </optgroup>
                         ))}
                     </>
@@ -286,15 +381,33 @@ function BattlesTab() {
                 </p>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">عدد الجولات</label>
-                <div className="flex gap-2">
-                  {[3, 5, 7, 10].map((n) => (
-                    <button key={n} onClick={() => setRounds(n)}
-                      className={`flex-1 py-3 rounded-2xl font-bold border transition ${rounds === n ? "bg-hero text-primary-foreground border-transparent shadow-glow" : "glass border-border"}`}>
-                      {n}
-                    </button>
-                  ))}
-                </div>
+                <label className="block text-xs text-muted-foreground mb-1">عدد الأسئلة</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={availableQs || 1}
+                  value={rounds}
+                  onChange={(e) => setRounds(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none font-bold"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  المتاح في هذا النطاق: {availableQs} سؤالاً — الأسئلة بالدور بين الطالبين.
+                  {pair.length > 0 && rounds > availableQs && " سيُكتفى بالمتاح."}
+                </p>
+                <label className="block text-xs text-muted-foreground mb-1 mt-3">
+                  زمن الإجابة لكل سؤال (بالثواني)
+                </label>
+                <input
+                  type="number"
+                  min={5}
+                  max={600}
+                  value={seconds}
+                  onChange={(e) => setSeconds(Math.max(5, Number(e.target.value) || 5))}
+                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none font-bold"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  إذا انتهى الوقت دون إجابة يُحسب السؤال خطأ.
+                </p>
               </div>
             </div>
             {blocked && (
@@ -331,30 +444,49 @@ function BattlesTab() {
             const p1P = db.profiles.find((p) => p.username === cfg.p1);
             const p2P = db.profiles.find((p) => p.username === cfg.p2);
             return (
-              <div key={b.id}
-                className="bg-card-gradient rounded-3xl p-4 border border-border shadow-soft flex items-center justify-between gap-3">
+              <div
+                key={b.id}
+                className="bg-card-gradient rounded-3xl p-4 border border-border shadow-soft flex items-center justify-between gap-3"
+              >
                 <div>
                   <div className="font-bold">
-                    {p1P?.avatar ?? "🎓"} {cfg.p1} <span className="text-muted-foreground">vs</span> {p2P?.avatar ?? "🎓"} {cfg.p2}
+                    {p1P?.avatar ?? "🎓"} {cfg.p1} <span className="text-muted-foreground">vs</span>{" "}
+                    {p2P?.avatar ?? "🎓"} {cfg.p2}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {cfg.subject}{cfg.unit ? ` • ${cfg.unit}` : ""}{cfg.lesson ? ` • ${cfg.lesson}` : ""} • {cfg.totalRounds} جولات
+                    {cfg.subject}
+                    {cfg.unit ? ` • ${cfg.unit}` : ""}
+                    {cfg.lesson ? ` • ${cfg.lesson}` : ""} • {cfg.totalRounds} سؤالاً •{" "}
+                    {cfg.seconds ?? 30} ث للإجابة
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`text-xs rounded-full px-3 py-1 font-bold ${
-                    b.status === "pending" ? "bg-warning/20 text-warning" :
-                    b.status === "accepted" ? "bg-primary/20 text-primary" :
-                    "bg-success/20 text-success"
-                  }`}>
+                  <span
+                    className={`text-xs rounded-full px-3 py-1 font-bold ${
+                      b.status === "pending"
+                        ? "bg-warning/20 text-warning"
+                        : b.status === "accepted"
+                          ? "bg-primary/20 text-primary"
+                          : "bg-success/20 text-success"
+                    }`}
+                  >
                     {b.status === "pending" ? "انتظار" : b.status === "accepted" ? "جارٍ" : "انتهت"}
                   </span>
                   {b.status !== "done" && (
-                    <button onClick={() => setActiveBattle(b)}
-                      className="bg-hero text-primary-foreground text-xs font-bold px-4 py-2 rounded-xl shadow-glow">
+                    <button
+                      onClick={() => setActiveBattle(b)}
+                      className="bg-hero text-primary-foreground text-xs font-bold px-4 py-2 rounded-xl shadow-glow"
+                    >
                       دخول
                     </button>
                   )}
+                  <button
+                    onClick={() => void removeBattle(b)}
+                    aria-label="حذف المسابقة"
+                    className="text-xs text-destructive font-bold px-3 py-2 rounded-xl glass"
+                  >
+                    🗑️ حذف
+                  </button>
                 </div>
               </div>
             );
@@ -365,9 +497,26 @@ function BattlesTab() {
   );
 }
 
+/** Tell students waiting in a battle room that it was deleted. */
+function notifyCancelled(battleId: string) {
+  const ch = supabase.channel(`battle:${battleId}`);
+  ch.subscribe((status) => {
+    if (status !== "SUBSCRIBED") return;
+    void ch
+      .send({ type: "broadcast", event: "b", payload: { t: "CANCEL" } satisfies BMsg })
+      .finally(() => {
+        setTimeout(() => void supabase.removeChannel(ch), 500);
+      });
+  });
+}
+
 // ── Supervisor Battle Room ────────────────────────────────────────────────────
 function SupervisorBattleRoom({
-  battle, cfg, supervisorUsername, db, onExit,
+  battle,
+  cfg,
+  supervisorUsername,
+  db,
+  onExit,
 }: {
   battle: Challenge;
   cfg: LiveBattleConfig;
@@ -375,78 +524,149 @@ function SupervisorBattleRoom({
   db: ReturnType<typeof useDB>;
   onExit: () => void;
 }) {
-  type Phase = "lobby" | "question" | "buzzed" | "verdict" | "done";
+  type Phase = "lobby" | "question" | "verdict" | "done";
+  const seconds = cfg.seconds ?? 30;
   const [phase, setPhase] = useState<Phase>("lobby");
   const [joined, setJoined] = useState<Set<string>>(new Set());
   const [questions, setQuestions] = useState<WireQ[]>([]);
+  const [turns, setTurns] = useState<string[]>([]);
   const [qi, setQi] = useState(0);
-  const [buzzer, setBuzzer] = useState<string | null>(null);
   const [scores, setScores] = useState({ p1: 0, p2: 0 });
-  const [lastVerdict, setLastVerdict] = useState<{ ok: boolean; opt: number } | null>(null);
+  const [lastVerdict, setLastVerdict] = useState<{
+    ok: boolean;
+    opt: number;
+    who: string;
+    timeout: boolean;
+  } | null>(null);
   const [winner, setWinner] = useState<string | null>(null);
+  const [deadline, setDeadline] = useState(0);
+  const [now, setNow] = useState(Date.now());
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const pendingBuzzes = useRef<{ who: string; qi: number; ts: number }[]>([]);
   const scoresRef = useRef(scores);
   const qiRef = useRef(qi);
   const questionsRef = useRef(questions);
+  const turnsRef = useRef(turns);
+  const answeredRef = useRef<Set<number>>(new Set());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const roundsRef = useRef<BattleRound[]>([]);
   scoresRef.current = scores;
   qiRef.current = qi;
   questionsRef.current = questions;
+  turnsRef.current = turns;
 
   const send = useCallback((msg: BMsg) => {
     channelRef.current?.send({ type: "broadcast", event: "b", payload: msg });
   }, []);
 
-  const handleVerdict = useCallback((buzzerWho: string, opt: number, currentQi: number) => {
-    const q = questionsRef.current[currentQi];
-    if (!q) return;
-    const ok = q.correct === opt;
-    // keep the round for the battle history and the answer for the student's mistakes review
-    roundsRef.current[currentQi] = {
-      q: q.q, options: q.options, correct: q.correct, lesson: q.lesson ?? q.unit, who: buzzerWho, chosen: opt, ok,
-    };
-    logAnswers(buzzerWho, "battle", [{
-      questionId: q.id, subject: q.subject ?? cfg.subject, lesson: q.lesson ?? q.unit,
-      q: q.q, options: q.options, correct: q.correct, chosen: opt,
-    }]);
-    const s = { ...scoresRef.current };
-    if (ok) { if (buzzerWho === cfg.p1) s.p1++; else s.p2++; }
-    setScores(s);
-    setLastVerdict({ ok, opt });
-    setPhase("verdict");
-    send({ t: "VERDICT", ok, opt, p1: s.p1, p2: s.p2 });
+  // countdown display
+  useEffect(() => {
+    if (phase !== "question") return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [phase]);
 
-    setTimeout(() => {
-      const nextQi = currentQi + 1;
-      if (nextQi >= questionsRef.current.length) {
-        const w = s.p1 > s.p2 ? cfg.p1 : s.p2 > s.p1 ? cfg.p2 : null;
-        setWinner(w);
-        setPhase("done");
-        send({ t: "DONE", winner: w, p1: s.p1, p2: s.p2 });
-        void setChallengeStatus(battle.id, "done", w ?? undefined);
-        void saveBattleResult({
-          battleId: battle.id,
-          supervisor: supervisorUsername,
-          p1: cfg.p1,
-          p2: cfg.p2,
-          p1Score: s.p1,
-          p2Score: s.p2,
-          winner: w,
-          subject: cfg.subject,
-          scope: [cfg.unit, cfg.lesson].filter(Boolean).join(" • ") || null,
-          rounds: roundsRef.current.filter(Boolean),
-        }).catch(() => {});
-      } else {
-        setQi(nextQi);
-        setBuzzer(null);
-        setLastVerdict(null);
-        setPhase("question");
-        send({ t: "NEXT", qi: nextQi });
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
+  const handleVerdictRef = useRef<
+    (who: string, opt: number, currentQi: number, timeout: boolean) => void
+  >(() => {});
+
+  /** Start the turn for question `index`: whoever's turn it is gets `seconds` to answer. */
+  const startTurn = useCallback(
+    (index: number) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setDeadline(Date.now() + seconds * 1000);
+      setNow(Date.now());
+      // small grace period for network delay before counting it as unanswered
+      timerRef.current = setTimeout(
+        () => {
+          if (qiRef.current === index && !answeredRef.current.has(index)) {
+            handleVerdictRef.current(turnsRef.current[index], -1, index, true);
+          }
+        },
+        seconds * 1000 + 1500,
+      );
+    },
+    [seconds],
+  );
+
+  const handleVerdict = useCallback(
+    (who: string, opt: number, currentQi: number, timeout: boolean) => {
+      const q = questionsRef.current[currentQi];
+      if (!q || answeredRef.current.has(currentQi)) return;
+      answeredRef.current.add(currentQi);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      const ok = !timeout && q.correct === opt;
+      // keep the round for the battle history and the answer for the student's mistakes review
+      roundsRef.current[currentQi] = {
+        q: q.q,
+        options: q.options,
+        correct: q.correct,
+        lesson: q.lesson ?? q.unit,
+        who,
+        chosen: opt,
+        ok,
+      };
+      logAnswers(who, "battle", [
+        {
+          questionId: q.id,
+          subject: q.subject ?? cfg.subject,
+          lesson: q.lesson ?? q.unit,
+          q: q.q,
+          options: q.options,
+          correct: q.correct,
+          chosen: timeout ? null : opt,
+        },
+      ]);
+      const s = { ...scoresRef.current };
+      if (ok) {
+        if (who === cfg.p1) s.p1++;
+        else s.p2++;
       }
-    }, 2500);
-  }, [cfg, battle.id, send, supervisorUsername]);
+      setScores(s);
+      setLastVerdict({ ok, opt, who, timeout });
+      setPhase("verdict");
+      send({ t: "VERDICT", ok, opt, p1: s.p1, p2: s.p2, who, timeout });
+
+      setTimeout(() => {
+        const nextQi = currentQi + 1;
+        if (nextQi >= questionsRef.current.length) {
+          const w = s.p1 > s.p2 ? cfg.p1 : s.p2 > s.p1 ? cfg.p2 : null;
+          setWinner(w);
+          setPhase("done");
+          send({ t: "DONE", winner: w, p1: s.p1, p2: s.p2 });
+          void setChallengeStatus(battle.id, "done", w ?? undefined);
+          void saveBattleResult({
+            battleId: battle.id,
+            supervisor: supervisorUsername,
+            p1: cfg.p1,
+            p2: cfg.p2,
+            p1Score: s.p1,
+            p2Score: s.p2,
+            winner: w,
+            subject: cfg.subject,
+            scope: [cfg.unit, cfg.lesson].filter(Boolean).join(" • ") || null,
+            rounds: roundsRef.current.filter(Boolean),
+          }).catch(() => {});
+        } else {
+          setQi(nextQi);
+          qiRef.current = nextQi; // accept the next answer without waiting for a re-render
+          setLastVerdict(null);
+          setPhase("question");
+          send({ t: "NEXT", qi: nextQi });
+          startTurn(nextQi);
+        }
+      }, 2500);
+    },
+    [cfg, battle.id, send, supervisorUsername, startTurn],
+  );
+  handleVerdictRef.current = handleVerdict;
 
   useEffect(() => {
     const ch = supabase.channel(`battle:${battle.id}`);
@@ -455,58 +675,75 @@ function SupervisorBattleRoom({
       const msg = payload as BMsg;
       if (msg.t === "JOIN") {
         setJoined((prev) => new Set([...prev, msg.who]));
-      } else if (msg.t === "BUZZ") {
-        pendingBuzzes.current.push(msg);
-        // wait 80ms to collect near-simultaneous buzzes then pick earliest
-        setTimeout(() => {
-          const relevant = pendingBuzzes.current.filter((b) => b.qi === msg.qi);
-          if (relevant.length === 0) return;
-          pendingBuzzes.current = [];
-          const first = relevant.reduce((a, b) => (a.ts <= b.ts ? a : b));
-          setBuzzer(first.who);
-          setPhase("buzzed");
-          send({ t: "BUZZED", who: first.who, qi: first.qi });
-        }, 80);
       } else if (msg.t === "ANSWER") {
-        if (msg.qi !== qiRef.current) return;
-        handleVerdict(msg.who, msg.opt, msg.qi);
+        // only the player whose turn it is may answer the current question
+        if (msg.qi !== qiRef.current || msg.who !== turnsRef.current[msg.qi]) return;
+        handleVerdictRef.current(msg.who, msg.opt, msg.qi, false);
       }
     });
 
     ch.subscribe();
     channelRef.current = ch;
-    return () => { supabase.removeChannel(ch); };
-  }, [battle.id, send, handleVerdict]);
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [battle.id]);
 
   const players = [cfg.p1, cfg.p2];
   const startBlockers = battleBlockers(db.progress, players, cfg.subject, cfg.unit, cfg.lesson);
+  const [starting, setStarting] = useState(false);
 
-  const startBattle = () => {
-    if (startBlockers.length > 0) return;
+  const startBattle = async () => {
+    if (startBlockers.length > 0 || starting) return;
+    setStarting(true);
     const lessons = battleLessons(db.progress, players, cfg.subject, cfg.unit, cfg.lesson);
-    const picked = getQuestionsFromLessons(cfg.subject, lessons, cfg.totalRounds, usedBattleQuestions());
+    // avoid questions either student already saw today, then older battle questions
+    const seen = await seenToday(players).catch(() => new Set<string>());
+    usedBattleQuestions().forEach((id) => seen.add(id));
+    const picked = getQuestionsFromLessons(cfg.subject, lessons, cfg.totalRounds, seen);
     rememberBattleQuestions(picked.map((q) => q.id));
+    markShown(
+      players,
+      picked.map((q) => q.id),
+    );
     const qs = picked.map((q) => ({
-      id: q.id, q: q.q, options: q.options, correct: q.correct, unit: q.unit,
-      subject: q.subject, lesson: q.lesson,
+      id: q.id,
+      q: q.q,
+      options: q.options,
+      correct: q.correct,
+      unit: q.unit,
+      subject: q.subject,
+      lesson: q.lesson,
     }));
+    const order = qs.map((_, i) => (i % 2 === 0 ? cfg.p1 : cfg.p2));
     roundsRef.current = [];
+    answeredRef.current = new Set();
     setQuestions(qs);
+    setTurns(order);
+    turnsRef.current = order;
+    questionsRef.current = qs;
     setQi(0);
+    qiRef.current = 0;
     setPhase("question");
-    send({ t: "START", qs });
+    send({ t: "START", qs, turns: order, seconds });
+    startTurn(0);
     void setChallengeStatus(battle.id, "accepted");
+    setStarting(false);
   };
 
   const p1P = db.profiles.find((p) => p.username === cfg.p1);
   const p2P = db.profiles.find((p) => p.username === cfg.p2);
+  const nameOf = (u: string) => db.profiles.find((p) => p.username === u)?.displayName ?? u;
   const q = questions[qi];
+  const left = Math.max(0, Math.ceil((deadline - now) / 1000));
 
   if (phase === "lobby") {
     const bothJoined = joined.has(cfg.p1) && joined.has(cfg.p2);
     return (
       <div className="space-y-6 max-w-lg mx-auto">
-        <button onClick={onExit} className="text-xs text-muted-foreground hover:underline">← رجوع</button>
+        <button onClick={onExit} className="text-xs text-muted-foreground hover:underline">
+          ← رجوع
+        </button>
         <div className="bg-card-gradient rounded-3xl p-8 border border-border shadow-soft text-center">
           <div className="text-5xl mb-4">⚔️</div>
           <h2 className="text-2xl font-bold">مسابقة {cfg.subject}</h2>
@@ -515,16 +752,25 @@ function SupervisorBattleRoom({
               {[cfg.unit, cfg.lesson].filter(Boolean).join(" • ")}
             </p>
           )}
-          <p className="text-muted-foreground mt-1">{cfg.totalRounds} جولات</p>
+          <p className="text-muted-foreground mt-1">
+            {cfg.totalRounds} سؤالاً بالدور • {seconds} ثانية لكل إجابة
+          </p>
 
           <div className="flex justify-center gap-8 mt-8">
-            {[{ username: cfg.p1, profile: p1P }, { username: cfg.p2, profile: p2P }].map(({ username, profile }) => (
+            {[
+              { username: cfg.p1, profile: p1P },
+              { username: cfg.p2, profile: p2P },
+            ].map(({ username, profile }) => (
               <div key={username} className="text-center">
-                <div className={`text-4xl mb-2 transition-all ${joined.has(username) ? "opacity-100" : "opacity-30 grayscale"}`}>
+                <div
+                  className={`text-4xl mb-2 transition-all ${joined.has(username) ? "opacity-100" : "opacity-30 grayscale"}`}
+                >
                   {profile?.avatar ?? "🎓"}
                 </div>
                 <div className="font-bold text-sm">{profile?.displayName ?? username}</div>
-                <div className={`text-xs mt-1 font-bold ${joined.has(username) ? "text-success" : "text-muted-foreground"}`}>
+                <div
+                  className={`text-xs mt-1 font-bold ${joined.has(username) ? "text-success" : "text-muted-foreground"}`}
+                >
                   {joined.has(username) ? "✅ جاهز" : "⏳ انتظار..."}
                 </div>
               </div>
@@ -533,23 +779,22 @@ function SupervisorBattleRoom({
 
           {startBlockers.length > 0 && (
             <div className="mt-6 rounded-2xl border border-warning/40 bg-warning/10 p-3 text-sm text-warning font-semibold">
-              ⚠️ لا يمكن البدء:{" "}
-              {startBlockers
-                .map((u) => db.profiles.find((x) => x.username === u)?.displayName ?? u)
-                .join(" و ")}{" "}
-              لم ينهِ دروس هذه المسابقة بعد.
+              ⚠️ لا يمكن البدء: {startBlockers.map(nameOf).join(" و ")} لم ينهِ دروس هذه المسابقة
+              بعد.
             </div>
           )}
 
           <button
-            onClick={startBattle}
-            disabled={!bothJoined || startBlockers.length > 0}
+            onClick={() => void startBattle()}
+            disabled={!bothJoined || startBlockers.length > 0 || starting}
             className="mt-8 w-full bg-hero text-primary-foreground font-bold py-4 rounded-2xl shadow-glow disabled:opacity-40 text-xl transition"
           >
             {startBlockers.length > 0
               ? "الدروس غير مكتملة"
               : bothJoined
-                ? "ابدأ المسابقة ▶"
+                ? starting
+                  ? "جارٍ التحضير..."
+                  : "ابدأ المسابقة ▶"
                 : "انتظار الطلاب..."}
           </button>
         </div>
@@ -563,9 +808,7 @@ function SupervisorBattleRoom({
     return (
       <div className="max-w-lg mx-auto bg-card-gradient rounded-3xl p-8 border border-border shadow-soft text-center">
         <div className="text-7xl mb-4">{winner ? "🏆" : "🤝"}</div>
-        <h2 className="text-3xl font-bold">
-          {winner ? `فاز ${winner === cfg.p1 ? p1P?.displayName ?? cfg.p1 : p2P?.displayName ?? cfg.p2}!` : "تعادل!"}
-        </h2>
+        <h2 className="text-3xl font-bold">{winner ? `فاز ${nameOf(winner)}!` : "تعادل!"}</h2>
         <p className="mt-3 font-semibold text-accent">
           {winner ? pickBySeed(WIN_QUOTES, battle.id) : "مباراة متكافئة! كلاهما في القمة 🤝"}
         </p>
@@ -584,8 +827,10 @@ function SupervisorBattleRoom({
             {p2Won && <div className="text-warning text-sm font-bold mt-1">👑 فائز</div>}
           </div>
         </div>
-        <button onClick={onExit}
-          className="mt-8 bg-hero text-primary-foreground font-bold px-8 py-3 rounded-2xl shadow-glow">
+        <button
+          onClick={onExit}
+          className="mt-8 bg-hero text-primary-foreground font-bold px-8 py-3 rounded-2xl shadow-glow"
+        >
           إنهاء
         </button>
       </div>
@@ -593,56 +838,83 @@ function SupervisorBattleRoom({
   }
 
   // Active game
+  const turnWho = turns[qi];
   return (
     <div className="space-y-4 max-w-lg mx-auto">
       {/* Score bar */}
       <div className="bg-card-gradient rounded-2xl p-4 border border-border flex items-center justify-between">
-        <div className="text-center">
+        <div
+          className={`text-center rounded-xl px-2 ${turnWho === cfg.p1 ? "ring-2 ring-primary" : ""}`}
+        >
           <div className="text-3xl font-black">{scores.p1}</div>
-          <div className="text-xs text-muted-foreground">{p1P?.avatar} {p1P?.displayName ?? cfg.p1}</div>
+          <div className="text-xs text-muted-foreground">
+            {p1P?.avatar} {p1P?.displayName ?? cfg.p1}
+          </div>
         </div>
         <div className="text-center text-muted-foreground">
-          <div className="text-lg font-bold">{qi + 1} / {cfg.totalRounds}</div>
-          <div className="text-xs">جولة</div>
+          <div className="text-lg font-bold">
+            {qi + 1} / {questions.length}
+          </div>
+          <div className="text-xs">سؤال</div>
         </div>
-        <div className="text-center">
+        <div
+          className={`text-center rounded-xl px-2 ${turnWho === cfg.p2 ? "ring-2 ring-primary" : ""}`}
+        >
           <div className="text-3xl font-black">{scores.p2}</div>
-          <div className="text-xs text-muted-foreground">{p2P?.avatar} {p2P?.displayName ?? cfg.p2}</div>
+          <div className="text-xs text-muted-foreground">
+            {p2P?.avatar} {p2P?.displayName ?? cfg.p2}
+          </div>
         </div>
       </div>
 
       {q && (
         <div className="bg-card-gradient rounded-3xl p-6 border border-border shadow-soft">
-          <p className="text-xs text-muted-foreground mb-2">{q.unit}</p>
+          <p className="text-xs text-muted-foreground mb-2">{q.lesson ?? q.unit}</p>
           <h3 className="text-xl font-bold mb-6">{q.q}</h3>
 
           {/* Answer options (supervisor sees them always for verification) */}
           <div className="grid gap-2 mb-4">
             {q.options.map((opt, i) => (
-              <div key={i} className={`rounded-2xl p-3 text-sm border text-right ${
-                i === q.correct ? "border-success/50 bg-success/10 text-success font-bold" : "glass border-border"
-              }`}>
+              <div
+                key={i}
+                className={`rounded-2xl p-3 text-sm border text-right ${
+                  i === q.correct
+                    ? "border-success/50 bg-success/10 text-success font-bold"
+                    : "glass border-border"
+                } ${lastVerdict && !lastVerdict.timeout && i === lastVerdict.opt && !lastVerdict.ok ? "border-destructive bg-destructive/10" : ""}`}
+              >
                 {opt}
               </div>
             ))}
           </div>
 
           {phase === "question" && (
-            <div className="text-center py-3 animate-pulse text-muted-foreground">
-              ⏳ انتظار الضغط...
-            </div>
-          )}
-          {phase === "buzzed" && buzzer && (
-            <div className="text-center py-3 bg-warning/10 rounded-2xl border border-warning/30">
-              <div className="text-2xl font-bold text-warning">🔔 {buzzer} ضغط أولاً!</div>
-              <div className="text-sm text-muted-foreground mt-1">انتظار إجابته...</div>
+            <div className="text-center py-3 rounded-2xl bg-primary/10 border border-primary/30">
+              <div className="text-lg font-bold">🎯 دور {nameOf(turnWho)}</div>
+              <div
+                className={`text-3xl font-mono font-black mt-1 ${left <= 5 ? "text-destructive animate-pulse" : ""}`}
+              >
+                ⏱ {left}
+              </div>
             </div>
           )}
           {phase === "verdict" && lastVerdict && (
-            <div className={`text-center py-3 rounded-2xl border ${lastVerdict.ok ? "bg-success/10 border-success/30 text-success" : "bg-destructive/10 border-destructive/30 text-destructive"}`}>
-              <div className="text-2xl font-bold">{lastVerdict.ok ? "✅ إجابة صحيحة!" : "❌ إجابة خاطئة"}</div>
-              {!lastVerdict.ok && <div className="text-xs mt-1">الصحيحة: {q.options[q.correct]}</div>}
-              <div className="text-xs text-muted-foreground mt-1 animate-pulse">السؤال التالي...</div>
+            <div
+              className={`text-center py-3 rounded-2xl border ${lastVerdict.ok ? "bg-success/10 border-success/30 text-success" : "bg-destructive/10 border-destructive/30 text-destructive"}`}
+            >
+              <div className="text-2xl font-bold">
+                {lastVerdict.timeout
+                  ? `⏱ انتهى وقت ${nameOf(lastVerdict.who)}`
+                  : lastVerdict.ok
+                    ? `✅ ${nameOf(lastVerdict.who)} أجاب صح!`
+                    : `❌ ${nameOf(lastVerdict.who)} أجاب خطأ`}
+              </div>
+              {!lastVerdict.ok && (
+                <div className="text-xs mt-1">الصحيحة: {q.options[q.correct]}</div>
+              )}
+              <div className="text-xs text-muted-foreground mt-1 animate-pulse">
+                السؤال التالي...
+              </div>
             </div>
           )}
         </div>
@@ -680,7 +952,13 @@ function SubjectsTab() {
       setStatus("saving");
       await Promise.all(
         students.map((st) =>
-          addSubject({ ownerUsername: st.username, name: name.trim(), totalChapters: chapters, color, bookPath }),
+          addSubject({
+            ownerUsername: st.username,
+            name: name.trim(),
+            totalChapters: chapters,
+            color,
+            bookPath,
+          }),
         ),
       );
       setSuccessMsg(`✅ تمت إضافة "${name.trim()}" لجميع الطلاب`);
@@ -689,7 +967,10 @@ function SubjectsTab() {
       setBookFile(null);
       setColor(COLORS[0]);
       setStatus("done");
-      setTimeout(() => { setStatus("idle"); setSuccessMsg(""); }, 3000);
+      setTimeout(() => {
+        setStatus("idle");
+        setSuccessMsg("");
+      }, 3000);
     } catch (err) {
       setErrorMsg((err as Error).message);
       setStatus("idle");
@@ -722,21 +1003,32 @@ function SubjectsTab() {
         </p>
       </div>
 
-      <form onSubmit={add} className="bg-card-gradient rounded-3xl p-6 border border-border shadow-soft space-y-4">
+      <form
+        onSubmit={add}
+        className="bg-card-gradient rounded-3xl p-6 border border-border shadow-soft space-y-4"
+      >
         <h3 className="font-bold text-lg">إضافة مادة جديدة</h3>
 
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-muted-foreground mb-1">اسم المادة</label>
-            <input value={name} onChange={(e) => setName(e.target.value)}
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="مثال: رياضيات"
-              className="w-full bg-input rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary" />
+              className="w-full bg-input rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary"
+            />
           </div>
           <div>
             <label className="block text-xs text-muted-foreground mb-1">عدد الفصول في الكتاب</label>
-            <input type="number" min={1} max={50} value={chapters}
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={chapters}
               onChange={(e) => setChapters(parseInt(e.target.value) || 1)}
-              className="w-full bg-input rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary text-center text-lg font-bold" />
+              className="w-full bg-input rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary text-center text-lg font-bold"
+            />
           </div>
         </div>
 
@@ -748,12 +1040,21 @@ function SubjectsTab() {
               <span className="text-sm text-muted-foreground flex-1 truncate">
                 {bookFile ? bookFile.name : "اختر ملف PDF (اختياري)"}
               </span>
-              <input type="file" accept="application/pdf" className="hidden"
-                onChange={(e) => setBookFile(e.target.files?.[0] ?? null)} />
+              <input
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={(e) => setBookFile(e.target.files?.[0] ?? null)}
+              />
             </label>
             {bookFile && (
-              <button type="button" onClick={() => setBookFile(null)}
-                className="text-xs text-destructive hover:underline shrink-0">إزالة</button>
+              <button
+                type="button"
+                onClick={() => setBookFile(null)}
+                className="text-xs text-destructive hover:underline shrink-0"
+              >
+                إزالة
+              </button>
             )}
           </div>
         </div>
@@ -762,9 +1063,13 @@ function SubjectsTab() {
           <label className="block text-xs text-muted-foreground mb-2">لون المادة</label>
           <div className="flex gap-2 flex-wrap">
             {COLORS.map((c) => (
-              <button type="button" key={c} onClick={() => setColor(c)}
+              <button
+                type="button"
+                key={c}
+                onClick={() => setColor(c)}
                 className={`w-9 h-9 rounded-full border-2 transition ${color === c ? "border-foreground scale-110 shadow-glow" : "border-transparent"}`}
-                style={{ background: c }} />
+                style={{ background: c }}
+              />
             ))}
           </div>
         </div>
@@ -775,16 +1080,32 @@ function SubjectsTab() {
               <span>{status === "uploading" ? "⬆️ جارٍ رفع الكتاب..." : "💾 جارٍ الحفظ..."}</span>
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <div className={`h-full bg-hero rounded-full ${status === "uploading" ? "w-2/3" : "w-full"} transition-all duration-500`} />
+              <div
+                className={`h-full bg-hero rounded-full ${status === "uploading" ? "w-2/3" : "w-full"} transition-all duration-500`}
+              />
             </div>
           </div>
         )}
-        {errorMsg && <div className="rounded-2xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm font-semibold text-destructive">❌ {errorMsg}</div>}
-        {successMsg && <div className="rounded-2xl bg-green-500/10 border border-green-500/30 px-4 py-3 text-sm font-semibold text-green-400">{successMsg}</div>}
+        {errorMsg && (
+          <div className="rounded-2xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm font-semibold text-destructive">
+            ❌ {errorMsg}
+          </div>
+        )}
+        {successMsg && (
+          <div className="rounded-2xl bg-green-500/10 border border-green-500/30 px-4 py-3 text-sm font-semibold text-green-400">
+            {successMsg}
+          </div>
+        )}
 
-        <button disabled={busy || !name.trim()}
-          className="w-full bg-hero text-primary-foreground font-bold py-3.5 rounded-2xl shadow-glow disabled:opacity-60 transition">
-          {busy ? (status === "uploading" ? "⬆️ يرفع الكتاب..." : "💾 يحفظ...") : "إضافة المادة لجميع الطلاب"}
+        <button
+          disabled={busy || !name.trim()}
+          className="w-full bg-hero text-primary-foreground font-bold py-3.5 rounded-2xl shadow-glow disabled:opacity-60 transition"
+        >
+          {busy
+            ? status === "uploading"
+              ? "⬆️ يرفع الكتاب..."
+              : "💾 يحفظ..."
+            : "إضافة المادة لجميع الطلاب"}
         </button>
       </form>
 
@@ -796,7 +1117,10 @@ function SubjectsTab() {
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {uniqueSubjects.map((s) => (
-            <div key={s.name} className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">
+            <div
+              key={s.name}
+              className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="w-3 h-10 rounded-full" style={{ background: s.color }} />
@@ -805,7 +1129,10 @@ function SubjectsTab() {
                     <p className="text-xs text-muted-foreground">{s.totalChapters} فصل</p>
                   </div>
                 </div>
-                <button onClick={() => void removeSubject(s.name)} className="text-xs text-destructive hover:underline">
+                <button
+                  onClick={() => void removeSubject(s.name)}
+                  className="text-xs text-destructive hover:underline"
+                >
                   حذف من الكل
                 </button>
               </div>
@@ -816,35 +1143,64 @@ function SubjectsTab() {
                     <BookLink path={s.bookPath} className="text-xs text-primary hover:underline">
                       📄 فتح الكتاب
                     </BookLink>
-                    <label className={`text-xs text-muted-foreground hover:text-foreground cursor-pointer ${uploadingFor === s.name ? "opacity-50" : ""}`}>
+                    <label
+                      className={`text-xs text-muted-foreground hover:text-foreground cursor-pointer ${uploadingFor === s.name ? "opacity-50" : ""}`}
+                    >
                       {uploadingFor === s.name ? "جارٍ الرفع..." : "تغيير الكتاب"}
-                      <input type="file" accept="application/pdf" className="hidden"
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        className="hidden"
                         disabled={uploadingFor === s.name}
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) void replaceBook(s.name, f); }} />
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void replaceBook(s.name, f);
+                        }}
+                      />
                     </label>
                   </>
                 ) : (
-                  <label className={`text-xs text-muted-foreground hover:text-foreground cursor-pointer ${uploadingFor === s.name ? "opacity-50" : ""}`}>
+                  <label
+                    className={`text-xs text-muted-foreground hover:text-foreground cursor-pointer ${uploadingFor === s.name ? "opacity-50" : ""}`}
+                  >
                     {uploadingFor === s.name ? "جارٍ الرفع..." : "📎 رفع كتاب"}
-                    <input type="file" accept="application/pdf" className="hidden"
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
                       disabled={uploadingFor === s.name}
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) void replaceBook(s.name, f); }} />
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void replaceBook(s.name, f);
+                      }}
+                    />
                   </label>
                 )}
               </div>
 
               <div className="mt-3 space-y-2">
                 {students.map((st) => {
-                  const sub = db.subjects.find((x) => x.ownerUsername === st.username && x.name === s.name);
-                  const pct = sub ? Math.round((sub.doneChapters / Math.max(sub.totalChapters, 1)) * 100) : 0;
+                  const sub = db.subjects.find(
+                    (x) => x.ownerUsername === st.username && x.name === s.name,
+                  );
+                  const pct = sub
+                    ? Math.round((sub.doneChapters / Math.max(sub.totalChapters, 1)) * 100)
+                    : 0;
                   return (
                     <div key={st.username}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span>{st.avatar} {st.displayName}</span>
-                        <span className="text-muted-foreground">{sub?.doneChapters ?? 0}/{s.totalChapters} ({pct}%)</span>
+                        <span>
+                          {st.avatar} {st.displayName}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {sub?.doneChapters ?? 0}/{s.totalChapters} ({pct}%)
+                        </span>
                       </div>
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full transition-all" style={{ width: `${pct}%`, background: s.color }} />
+                        <div
+                          className="h-full transition-all"
+                          style={{ width: `${pct}%`, background: s.color }}
+                        />
                       </div>
                     </div>
                   );
@@ -920,8 +1276,14 @@ function StudentCard({ username, index }: { username: string; index: number }) {
         <div className="flex items-end justify-between gap-1.5 h-24">
           {days.map((d, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <div className="w-full rounded-t-lg bg-hero transition-all"
-                style={{ height: `${(d.min / maxMin) * 100}%`, minHeight: 4, opacity: d.min ? 1 : 0.2 }} />
+              <div
+                className="w-full rounded-t-lg bg-hero transition-all"
+                style={{
+                  height: `${(d.min / maxMin) * 100}%`,
+                  minHeight: 4,
+                  opacity: d.min ? 1 : 0.2,
+                }}
+              />
               <span className="text-[10px] text-muted-foreground">{d.d}</span>
             </div>
           ))}
@@ -929,7 +1291,9 @@ function StudentCard({ username, index }: { username: string; index: number }) {
       </div>
 
       <div className="mt-5">
-        <p className="text-xs text-muted-foreground mb-2">📍 الدروس التي أنهاها (اضغط على المادة للتعديل)</p>
+        <p className="text-xs text-muted-foreground mb-2">
+          📍 الدروس التي أنهاها (اضغط على المادة للتعديل)
+        </p>
         <LessonProgressEditor username={username} />
       </div>
 
@@ -943,10 +1307,15 @@ function StudentCard({ username, index }: { username: string; index: number }) {
                 <div key={s.id}>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="font-semibold">{s.name}</span>
-                    <span className="text-muted-foreground">{s.doneChapters}/{s.totalChapters} ({pct}%)</span>
+                    <span className="text-muted-foreground">
+                      {s.doneChapters}/{s.totalChapters} ({pct}%)
+                    </span>
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full transition-all" style={{ width: `${pct}%`, background: s.color }} />
+                    <div
+                      className="h-full transition-all"
+                      style={{ width: `${pct}%`, background: s.color }}
+                    />
                   </div>
                 </div>
               );

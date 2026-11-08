@@ -2,6 +2,7 @@ import { useState } from "react";
 import confetti from "canvas-confetti";
 import { MapView } from "@/components/MapView";
 import { logAnswers } from "@/lib/answers";
+import { markShown, seenToday } from "@/lib/seenToday";
 import { useCurrentProfile } from "@/lib/store";
 import { MAP_QUESTIONS, contextRefs, type MapQuestion } from "@/lib/mapQuestions";
 
@@ -10,9 +11,10 @@ interface Shown extends MapQuestion {
   correctIndex: number;
 }
 
-function prepare(list: MapQuestion[], count: number): Shown[] {
-  return [...list]
-    .sort(() => Math.random() - 0.5)
+function prepare(list: MapQuestion[], count: number, avoid: Set<string>): Shown[] {
+  const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
+  // unseen-today questions first
+  return [...shuffle(list.filter((q) => !avoid.has(q.id))), ...shuffle(list.filter((q) => avoid.has(q.id)))]
     .slice(0, count)
     .map((q) => {
       const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
@@ -33,8 +35,12 @@ export function MapQuiz() {
 
   const pool = MAP_QUESTIONS.filter((m) => subject === "all" || m.subject === subject);
 
-  const start = () => {
-    setQs(prepare(pool, count));
+  const start = async () => {
+    const me = profile?.username ?? "";
+    const seen = await seenToday([me]).catch(() => new Set<string>());
+    const picked = prepare(pool, count, seen);
+    markShown([me], picked.map((q) => q.id));
+    setQs(picked);
     setIdx(0);
     setPicked(null);
     setScore(0);

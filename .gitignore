@@ -34,3 +34,6 @@ dist-ssr
 
 # Local textbook PDFs (large, not used by the app)
 public/books/
+
+# Reference books (large, copyrighted, not used by the app)
+public/new-books/

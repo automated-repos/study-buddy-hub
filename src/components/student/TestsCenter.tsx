@@ -2,8 +2,9 @@ import { useState, type ReactNode } from "react";
 import { SUBJECTS, getQuestionsFromLessons, type AIQuestion } from "@/lib/ai-content";
 import { materialFor } from "@/lib/content";
 import { finishedLessons, isFinished, lessonSequence, type LessonRef } from "@/lib/progress";
-import { logReview, useCurrentProfile, useDB, type DB } from "@/lib/store";
+import { getCurrentUsername, logReview, useCurrentProfile, useDB, type DB } from "@/lib/store";
 import { QuizRunner } from "./QuizRunner";
+import { markShown, seenToday } from "@/lib/seenToday";
 import { MapQuiz } from "./MapQuiz";
 import { Mistakes } from "@/components/Mistakes";
 
@@ -53,9 +54,23 @@ function finishedBySubject(db: Pick<DB, "progress">, username: string, subject: 
 }
 
 /** Spread `count` questions across subjects in proportion to their lessons. */
+/** Pick questions avoiding ones this student already saw today, then remember them as shown. */
+async function startWith(
+  groups: { subject: string; lessons: LessonRef[] }[],
+  count: number,
+  set: (qs: AIQuestion[]) => void,
+) {
+  const me = getCurrentUsername() ?? "";
+  const seen = await seenToday([me]).catch(() => new Set<string>());
+  const qs = buildQuestions(groups, count, seen);
+  markShown([me], qs.map((q) => q.id));
+  set(qs);
+}
+
 function buildQuestions(
   groups: { subject: string; lessons: LessonRef[] }[],
   count: number,
+  avoid?: Set<string>,
 ): AIQuestion[] {
   const total = groups.reduce((a, g) => a + g.lessons.length, 0);
   if (!total) return [];
@@ -65,6 +80,7 @@ function buildQuestions(
           g.subject,
           g.lessons,
           Math.max(1, Math.round((count * g.lessons.length) / total)),
+          avoid,
         )
       : [],
   );
@@ -169,7 +185,7 @@ function Comprehensive() {
       <p className="text-xs text-muted-foreground">يشمل {lessonCount} درساً.</p>
       <button
         disabled={!lessonCount}
-        onClick={() => setQs(buildQuestions(groups, count))}
+        onClick={() => void startWith(groups, count, setQs)}
         className="w-full bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow disabled:opacity-50"
       >
         {lessonCount ? "ابدأ الاختبار" : "لا توجد دروس منتهية — حدّدها من تبويب المواد"}
@@ -232,7 +248,7 @@ function Biweekly() {
       </div>
       <button
         disabled={!lessonCount}
-        onClick={() => setQs(buildQuestions(groups, 30))}
+        onClick={() => void startWith(groups, 30, setQs)}
         className="w-full bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow disabled:opacity-50"
       >
         {lessonCount
