@@ -8,6 +8,7 @@ import { EXTRA_AR_ALL } from "./questions/ar2";
 import { EXTRA_HI_2 } from "./questions/hi2";
 import { EXTRA_GEO_2 } from "./questions/geo2";
 import { EXTRA_FR, SUMMARIES_FR } from "./questions/fr";
+import { EXTRA_FR_2, SUMMARIES_FR_2 } from "./questions/fr2";
 import { SUMMARIES_HI } from "./questions/hi-summaries";
 import { SUMMARIES_GEO } from "./questions/geo-summaries";
 import { SUMMARIES_ST } from "./questions/st-summaries";
@@ -100,6 +101,7 @@ export const ALL_QUESTIONS: AIQuestion[] = [
     ...EXTRA_HI_2,
     ...EXTRA_GEO_2,
     ...EXTRA_FR,
+    ...EXTRA_FR_2,
   ]),
 ];
 
@@ -117,6 +119,7 @@ export const ALL_SUMMARIES: AISummary[] = [
   ...SUMMARIES_HI,
   ...SUMMARIES_GEO,
   ...SUMMARIES_FR,
+  ...SUMMARIES_FR_2,
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
