@@ -5,6 +5,7 @@ import { STUDY_EN } from "./en";
 import { STUDY_ST } from "./st";
 import { STUDY_ST_2 } from "./st2";
 import { STUDY_AR } from "./ar";
+import { STUDY_AR_2 } from "./ar2";
 import { STUDY_HI } from "./hi";
 import { STUDY_HI_2 } from "./hi2";
 import { STUDY_GEO } from "./geo";
@@ -18,6 +19,7 @@ const BUILT_IN: LessonStudy[] = [
   ...STUDY_ST,
   ...STUDY_ST_2,
   ...STUDY_AR,
+  ...STUDY_AR_2,
   ...STUDY_HI,
   ...STUDY_HI_2,
   ...STUDY_GEO,
