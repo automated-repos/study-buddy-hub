@@ -33,9 +33,24 @@ export function lessonsOfUnit(subject: string, unit: string): LessonRef[] {
   return lessonSequence(subject).filter((l) => l.unit === unit);
 }
 
-/** Has the student answered for this subject at all (lessons ticked or "not started")? */
+/** Lesson keys of the current curriculum (rows for removed lessons are ignored). */
+function currentKeys(subject: string): Set<string> {
+  return new Set(lessonSequence(subject).map((l) => key(l.unit, l.lesson)));
+}
+
+/**
+ * Has the student answered for this subject (lessons ticked or "not started")?
+ * Rows pointing at lessons that no longer exist (e.g. after a curriculum change) don't count,
+ * so the student is asked again.
+ */
 export function hasAnswered(progress: LessonProgress[], username: string, subject: string) {
-  return progress.some((x) => x.ownerUsername === username && x.subject === subject);
+  const valid = currentKeys(subject);
+  return progress.some(
+    (x) =>
+      x.ownerUsername === username &&
+      x.subject === subject &&
+      (x.lesson === "" || valid.has(key(x.unit, x.lesson))),
+  );
 }
 
 /** Subjects where the student hasn't said anything yet. */
@@ -49,10 +64,12 @@ export function finishedLessons(
   username: string,
   subject: string,
 ): Set<string> {
+  const valid = currentKeys(subject);
   return new Set(
     progress
       .filter((x) => x.ownerUsername === username && x.subject === subject && x.lesson !== "")
-      .map((x) => key(x.unit, x.lesson)),
+      .map((x) => key(x.unit, x.lesson))
+      .filter((k) => valid.has(k)),
   );
 }
 

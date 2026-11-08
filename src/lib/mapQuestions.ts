@@ -1,3 +1,4 @@
+import { HL } from "./questions/hi-units";
 // Map questions: a real map (Natural Earth data via world-atlas) with countries highlighted
 // and/or places marked, and a multiple-choice question about it.
 // The right answer is written first; options are shuffled when shown.
@@ -546,7 +547,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h1",
     subject: H,
-    lesson: "الحملة الفرنسية 1798-1801",
+    lesson: HL.f1l2,
     q: "النقطة تحدد مكان معركة دمّر فيها نيلسون الأسطول الفرنسي عام 1798:",
     fit: DELTA,
     points: [{ lon: 30.06, lat: 31.32, label: "أبو قير" }],
@@ -556,7 +557,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h2",
     subject: H,
-    lesson: "الحملة الفرنسية 1798-1801",
+    lesson: HL.f1l2,
     q: "النقطة تحدد المدينة التي فشل نابليون في حصارها عام 1799:",
     fit: [28, 27, 40, 36],
     points: [{ lon: 35.07, lat: 32.93, label: "عكا" }],
@@ -566,7 +567,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h3",
     subject: H,
-    lesson: "الحملة الفرنسية 1798-1801",
+    lesson: HL.f1l2,
     q: "النقطة تحدد المدينة التي نزلت فيها الحملة الفرنسية أولاً:",
     fit: DELTA,
     points: [{ lon: 29.92, lat: 31.2, label: "الإسكندرية" }],
@@ -576,7 +577,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h4",
     subject: H,
-    lesson: "الحملة الفرنسية 1798-1801",
+    lesson: HL.f1l3,
     q: "النقطة تحدد المدينة التي اكتُشف قربها الحجر الذي فك به شامبليون رموز الهيروغليفية:",
     fit: DELTA,
     points: [{ lon: 30.42, lat: 31.4, label: "رشيد" }],
@@ -586,7 +587,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h5",
     subject: H,
-    lesson: "الحملة الفرنسية 1798-1801",
+    lesson: HL.f1l2,
     q: "الجزيرة عند النقطة استولت عليها الحملة في طريقها إلى مصر:",
     fit: MED,
     points: [{ lon: 14.45, lat: 35.9, label: "مالطا" }],
@@ -597,7 +598,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h6",
     subject: H,
-    lesson: "محمد علي وتحديث مصر",
+    lesson: HL.f2l4,
     q: "النقطة تحدد مكان معركة تحطم فيها الأسطول المصري عام 1827:",
     fit: MED,
     points: [{ lon: 21.7, lat: 36.91, label: "نافارين" }],
@@ -607,7 +608,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h7",
     subject: H,
-    lesson: "محمد علي وتحديث مصر",
+    lesson: HL.f2l4,
     q: "الدولة الملوّنة فتحها محمد علي عام 1820 وأسس فيها الخرطوم:",
     fit: [20, 3, 42, 32],
     highlight: ["Sudan"],
@@ -617,7 +618,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h8",
     subject: H,
-    lesson: "محمد علي وتحديث مصر",
+    lesson: HL.f2l2,
     q: "النقطة تحدد مدينة هُزمت فيها حملة فريزر الإنجليزية عام 1807:",
     fit: DELTA,
     points: [{ lon: 30.42, lat: 31.4, label: "رشيد" }],
@@ -627,7 +628,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h9",
     subject: H,
-    lesson: "محمد علي وتحديث مصر",
+    lesson: HL.f2l4,
     q: "النقطة تحدد المنطقة التي حارب فيها محمد علي الوهابيين:",
     fit: [30, 15, 50, 32],
     points: [{ lon: 39.8, lat: 21.4, label: "الحجاز" }],
@@ -638,7 +639,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h10",
     subject: H,
-    lesson: "عصر الخديو إسماعيل والثورة العرابية",
+    lesson: HL.f3l2,
     q: "النقطة تحدد مكان المعركة التي هُزم فيها عرابي عام 1882:",
     fit: DELTA,
     points: [{ lon: 31.78, lat: 30.55, label: "التل الكبير" }],
@@ -648,7 +649,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h11",
     subject: H,
-    lesson: "عصر الخديو إسماعيل والثورة العرابية",
+    lesson: HL.f3l2,
     q: "النقطة تحدد مكاناً صمد فيه عرابي أمام الإنجليز:",
     fit: DELTA,
     points: [{ lon: 30.13, lat: 31.13, label: "كفر الدوار" }],
@@ -658,7 +659,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h12",
     subject: H,
-    lesson: "عصر الخديو إسماعيل والثورة العرابية",
+    lesson: HL.f3l2,
     q: "الجزيرة الملوّنة نُفي إليها أحمد عرابي:",
     fit: [70, 0, 90, 15],
     highlight: ["Sri Lanka"],
@@ -668,7 +669,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h13",
     subject: H,
-    lesson: "عصر الخديو إسماعيل والثورة العرابية",
+    lesson: HL.f2l5,
     q: "النقطة تحدد ممراً افتُتح للملاحة في عهد الخديو إسماعيل عام 1869:",
     fit: EGYPT,
     points: [{ lon: 32.35, lat: 30.6, label: "قناة السويس" }],
@@ -679,7 +680,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h14",
     subject: H,
-    lesson: "الاحتلال البريطاني ومقاومته",
+    lesson: HL.f3l4,
     q: "النقطة تحدد قرية وقعت فيها حادثة شهيرة عام 1906 بمحافظة المنوفية:",
     fit: DELTA,
     points: [{ lon: 30.83, lat: 30.58, label: "دنشواي" }],
@@ -689,7 +690,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h15",
     subject: H,
-    lesson: "الاحتلال البريطاني ومقاومته",
+    lesson: HL.f3l3,
     q: "الدولة الملوّنة احتلت مصر عام 1882:",
     fit: EUROPE,
     highlight: ["United Kingdom"],
@@ -700,7 +701,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h16",
     subject: H,
-    lesson: "ثورة 1919 وما بعدها",
+    lesson: HL.f4l1,
     q: "الجزيرة عند النقطة نُفي إليها سعد زغلول ورفاقه في مارس 1919:",
     fit: MED,
     points: [{ lon: 14.45, lat: 35.9, label: "مالطا" }],
@@ -710,7 +711,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h17",
     subject: H,
-    lesson: "ثورة 1919 وما بعدها",
+    lesson: HL.f4l1,
     q: "الدولة الملوّنة عُقد في عاصمتها مؤتمر الصلح الذي أراد الوفد عرض قضية مصر عليه:",
     fit: EUROPE,
     highlight: ["France"],
@@ -721,7 +722,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h18",
     subject: H,
-    lesson: "مصر بين 1919 و1952",
+    lesson: HL.f4l2,
     q: "النقطة تحدد مدينة شهدت معركة بطولية للشرطة في 25 يناير 1952:",
     fit: DELTA,
     points: [{ lon: 32.27, lat: 30.6, label: "الإسماعيلية" }],
@@ -731,7 +732,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h19",
     subject: H,
-    lesson: "مصر بين 1919 و1952",
+    lesson: HL.f4l2,
     q: "الدولة الملوّنة دخلت مصر الحرب فيها عام 1948:",
     fit: MIDEAST,
     highlight: ["Palestine", "Israel"],
@@ -742,7 +743,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h20",
     subject: H,
-    lesson: "ثورة 23 يوليو 1952",
+    lesson: HL.f7l3,
     q: "النقطة تحدد المدينة التي اشتهرت بمقاومتها خلال العدوان الثلاثي 1956:",
     fit: DELTA,
     points: [{ lon: 32.3, lat: 31.26, label: "بورسعيد" }],
@@ -752,7 +753,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h21",
     subject: H,
-    lesson: "ثورة 23 يوليو 1952",
+    lesson: HL.f4l3,
     q: "النقطة تحدد موقع السد الذي بدأ بناؤه عام 1960:",
     fit: EGYPT,
     points: [{ lon: 32.88, lat: 23.97, label: "السد العالي" }],
@@ -762,7 +763,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h22",
     subject: H,
-    lesson: "ثورة 23 يوليو 1952",
+    lesson: HL.f7l1,
     q: "الدولة الملوّنة قامت معها الوحدة مع مصر عام 1958:",
     fit: MIDEAST,
     highlight: ["Syria"],
@@ -772,7 +773,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h23",
     subject: H,
-    lesson: "ثورة 23 يوليو 1952",
+    lesson: HL.f7l3,
     q: "الدول الملوّنة شاركت في العدوان الثلاثي على مصر عام 1956:",
     fit: [-10, 25, 40, 58],
     highlight: ["United Kingdom", "France", "Israel"],
@@ -788,7 +789,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h24",
     subject: H,
-    lesson: "مصر من السادات حتى اليوم",
+    lesson: HL.f7l3,
     q: "النقطة تحدد مدينة استُعيدت بالتحكيم الدولي عام 1989:",
     fit: [32, 27, 36, 31.5],
     points: [{ lon: 34.9, lat: 29.49, label: "طابا" }],
@@ -798,7 +799,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h25",
     subject: H,
-    lesson: "مصر من السادات حتى اليوم",
+    lesson: HL.f7l3,
     q: "النقطة تحدد هضبة كانت جبهة سوريا في حرب أكتوبر 1973:",
     fit: MIDEAST,
     points: [{ lon: 35.8, lat: 33.0, label: "الجولان" }],
@@ -808,7 +809,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-h26",
     subject: H,
-    lesson: "مصر من السادات حتى اليوم",
+    lesson: HL.f7l3,
     q: "عبر الجيش المصري عند النقطة خط بارليف في حرب أكتوبر، وهي على:",
     fit: EGYPT,
     points: [{ lon: 32.35, lat: 30.6, label: "قناة السويس" }],
