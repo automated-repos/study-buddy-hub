@@ -249,6 +249,30 @@ export function getQuestionsFromLessons(
   return pick(pool, count, avoid);
 }
 
+/**
+ * Questions from several subjects at once: `count` is spread across the groups in proportion
+ * to their number of lessons, then shuffled together.
+ */
+export function getQuestionsFromGroups(
+  groups: { subject: string; lessons: { unit: string; lesson: string }[] }[],
+  count: number,
+  avoid?: Set<string>,
+): AIQuestion[] {
+  const total = groups.reduce((a, g) => a + g.lessons.length, 0);
+  if (!total) return [];
+  const qs = groups.flatMap((g) =>
+    g.lessons.length
+      ? getQuestionsFromLessons(
+          g.subject,
+          g.lessons,
+          Math.max(1, Math.ceil((count * g.lessons.length) / total)),
+          avoid,
+        )
+      : [],
+  );
+  return qs.sort(() => Math.random() - 0.5).slice(0, count);
+}
+
 // backward-compatible wrapper
 export function getQuestionsFor(subjectName: string, unit?: string, count = 5): AIQuestion[] {
   if (unit) return getQuestionsForUnit(subjectName, unit, count);

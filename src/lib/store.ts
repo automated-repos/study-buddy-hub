@@ -263,7 +263,20 @@ function mapChallenge(r: any): Challenge {
 export const DB_QUERY_KEY = ["db"] as const;
 
 async function fetchAll() {
-  const [profiles, subjects, books, sessions, quizzes, challenges, progress, customQs, tasks, reviews, customSums, battleRes] = await Promise.all([
+  const [
+    profiles,
+    subjects,
+    books,
+    sessions,
+    quizzes,
+    challenges,
+    progress,
+    customQs,
+    tasks,
+    reviews,
+    customSums,
+    battleRes,
+  ] = await Promise.all([
     supabase.from("profiles").select("*"),
     supabase.from("subjects").select("*"),
     supabase.from("books").select("*"),
@@ -275,7 +288,11 @@ async function fetchAll() {
     supabase.from("study_tasks").select("*"),
     supabase.from("reviews").select("*"),
     supabase.from("custom_summaries").select("*"),
-    supabase.from("battle_results").select("*").order("finished_at", { ascending: false }).limit(500),
+    supabase
+      .from("battle_results")
+      .select("*")
+      .order("finished_at", { ascending: false })
+      .limit(500),
   ]);
   // empty if the custom_questions migration hasn't been applied yet
   const questionEdits: QuestionEdit[] = (customQs.data ?? []).map((r) => ({
@@ -434,11 +451,11 @@ export async function updateAvatar(username: string, avatar: string) {
 
 export const DEFAULT_SUBJECTS: { name: string; totalChapters: number; color: string }[] = [
   { name: "إنجليزي", totalChapters: 24, color: "#6366f1" },
-  { name: "إحصاء",   totalChapters: 13, color: "#f59e0b" },
-  { name: "عربي",    totalChapters: 16, color: "#10b981" },
-  { name: "تاريخ",   totalChapters: 8,  color: "#ef4444" },
+  { name: "إحصاء", totalChapters: 13, color: "#f59e0b" },
+  { name: "عربي", totalChapters: 16, color: "#10b981" },
+  { name: "تاريخ", totalChapters: 8, color: "#ef4444" },
   { name: "جغرافيا", totalChapters: 14, color: "#3b82f6" },
-  { name: "فرنسي",   totalChapters: 12, color: "#ec4899" },
+  { name: "فرنسي", totalChapters: 12, color: "#ec4899" },
 ];
 
 export async function seedStudentSubjects(username: string): Promise<void> {
@@ -509,7 +526,8 @@ export async function updateSubject(id: string, patch: Partial<Subject>) {
     total_chapters: patch.totalChapters ?? current.total_chapters,
     done_chapters: patch.doneChapters ?? current.done_chapters,
     color: patch.color ?? current.color,
-    target_exam_date: patch.targetExamDate !== undefined ? patch.targetExamDate : current.target_exam_date,
+    target_exam_date:
+      patch.targetExamDate !== undefined ? patch.targetExamDate : current.target_exam_date,
   };
 
   const { error } = await supabase.from("subjects").update(dbPatch).eq("id", id);
@@ -595,11 +613,7 @@ export async function addBook(b: Omit<Book, "id" | "addedAt">) {
 }
 
 export async function deleteBook(id: string) {
-  const { data: book } = await supabase
-    .from("books")
-    .select("file_path")
-    .eq("id", id)
-    .single();
+  const { data: book } = await supabase.from("books").select("file_path").eq("id", id).single();
 
   if (book?.file_path) {
     await supabase.storage.from("books").remove([book.file_path]);
@@ -636,9 +650,7 @@ export async function uploadBook(
 }
 
 export async function getBookUrl(filePath: string): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from("books")
-    .createSignedUrl(filePath, 60 * 60);
+  const { data, error } = await supabase.storage.from("books").createSignedUrl(filePath, 60 * 60);
   if (error || !data) throw new Error(error?.message ?? "تعذر توليد رابط الكتاب");
   return data.signedUrl;
 }
@@ -655,9 +667,7 @@ export function pointsFor(username: string, db: Pick<DB, "sessions" | "quizzes">
 }
 
 export function streakFor(username: string, db: Pick<DB, "sessions">) {
-  const dates = new Set(
-    db.sessions.filter((s) => s.ownerUsername === username).map((s) => s.date),
-  );
+  const dates = new Set(db.sessions.filter((s) => s.ownerUsername === username).map((s) => s.date));
   let streak = 0;
   const d = new Date();
   for (;;) {
@@ -692,7 +702,10 @@ export function isLiveBattle(c: Challenge): boolean {
 }
 
 export interface LiveBattleConfig {
+  /** Subject name, or the names joined with "، " when the battle covers several subjects. */
   subject: string;
+  /** Set when the battle covers several subjects (all lessons both students finished in each). */
+  subjects?: string[];
   /** Optional: limit questions to one unit / lesson. Missing = whole subject / unit. */
   unit?: string;
   lesson?: string;
@@ -717,6 +730,7 @@ export async function createLiveBattle(opts: {
   p1: string;
   p2: string;
   subject: string;
+  subjects?: string[];
   unit?: string;
   lesson?: string;
   totalRounds: number;
@@ -724,6 +738,7 @@ export async function createLiveBattle(opts: {
 }): Promise<string> {
   const cfg: LiveBattleConfig = {
     subject: opts.subject,
+    ...(opts.subjects && opts.subjects.length > 1 ? { subjects: opts.subjects } : {}),
     ...(opts.unit ? { unit: opts.unit } : {}),
     ...(opts.lesson ? { lesson: opts.lesson } : {}),
     p1: opts.p1,
@@ -761,11 +776,7 @@ export async function createChallenge(c: Omit<Challenge, "id" | "createdAt" | "s
   await invalidate();
 }
 
-export async function setChallengeStatus(
-  id: string,
-  status: Challenge["status"],
-  winner?: string,
-) {
+export async function setChallengeStatus(id: string, status: Challenge["status"], winner?: string) {
   const { error } = await supabase
     .from("challenges")
     .update({ status, ...(winner ? { winner } : {}) })
@@ -835,10 +846,7 @@ export async function setSubjectNotStarted(username: string, subject: string) {
 
 // ============== Question bank (supervisor edits) ==============
 /** Add a new question, or save an edited version of an existing one (same id = replace). */
-export async function saveQuestion(
-  q: Omit<QuestionEdit, "hidden">,
-  by: string,
-): Promise<void> {
+export async function saveQuestion(q: Omit<QuestionEdit, "hidden">, by: string): Promise<void> {
   const { error } = await supabase.from("custom_questions").upsert({
     id: q.id,
     subject: q.subject,
@@ -857,7 +865,11 @@ export async function saveQuestion(
 }
 
 /** Delete a question: built-in ones are hidden (restorable), added ones are removed. */
-export async function deleteQuestion(q: Omit<QuestionEdit, "hidden">, builtIn: boolean, by: string) {
+export async function deleteQuestion(
+  q: Omit<QuestionEdit, "hidden">,
+  builtIn: boolean,
+  by: string,
+) {
   const { error } = builtIn
     ? await supabase.from("custom_questions").upsert({
         id: q.id,
@@ -962,7 +974,12 @@ export async function saveBattleResult(r: Omit<BattleResult, "finishedAt">) {
 }
 
 // ============== Supervisor edits to summaries ==============
-export async function saveCustomSummary(subject: string, lesson: string, data: unknown, by: string) {
+export async function saveCustomSummary(
+  subject: string,
+  lesson: string,
+  data: unknown,
+  by: string,
+) {
   const { error } = await supabase.from("custom_summaries").upsert({
     id: `${subject}|${lesson}`,
     subject,

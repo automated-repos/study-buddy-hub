@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { SUBJECTS, getQuestionsFromLessons, type AIQuestion } from "@/lib/ai-content";
+import { SUBJECTS, getQuestionsFromGroups, type AIQuestion } from "@/lib/ai-content";
 import { materialFor } from "@/lib/content";
 import { finishedLessons, isFinished, lessonSequence, type LessonRef } from "@/lib/progress";
 import { getCurrentUsername, logReview, useCurrentProfile, useDB, type DB } from "@/lib/store";
@@ -45,15 +45,14 @@ export function TestsCenter({ quick }: { quick: ReactNode }) {
   );
 }
 
-/** Finished lessons per subject (all subjects when subject is null). */
-function finishedBySubject(db: Pick<DB, "progress">, username: string, subject: string | null) {
-  return (subject ? [subject] : SUBJECTS).map((s) => {
+/** Finished lessons per subject (all subjects when subjects is null). */
+function finishedBySubject(db: Pick<DB, "progress">, username: string, subjects: string[] | null) {
+  return (subjects ?? SUBJECTS).map((s) => {
     const done = finishedLessons(db.progress, username, s);
     return { subject: s, lessons: lessonSequence(s).filter((l) => isFinished(done, l)) };
   });
 }
 
-/** Spread `count` questions across subjects in proportion to their lessons. */
 /** Pick questions avoiding ones this student already saw today, then remember them as shown. */
 async function startWith(
   groups: { subject: string; lessons: LessonRef[] }[],
@@ -62,47 +61,32 @@ async function startWith(
 ) {
   const me = getCurrentUsername() ?? "";
   const seen = await seenToday([me]).catch(() => new Set<string>());
-  const qs = buildQuestions(groups, count, seen);
-  markShown([me], qs.map((q) => q.id));
-  set(qs);
-}
-
-function buildQuestions(
-  groups: { subject: string; lessons: LessonRef[] }[],
-  count: number,
-  avoid?: Set<string>,
-): AIQuestion[] {
-  const total = groups.reduce((a, g) => a + g.lessons.length, 0);
-  if (!total) return [];
-  const qs = groups.flatMap((g) =>
-    g.lessons.length
-      ? getQuestionsFromLessons(
-          g.subject,
-          g.lessons,
-          Math.max(1, Math.round((count * g.lessons.length) / total)),
-          avoid,
-        )
-      : [],
+  const qs = getQuestionsFromGroups(groups, count, seen);
+  markShown(
+    [me],
+    qs.map((q) => q.id),
   );
-  return qs.sort(() => Math.random() - 0.5).slice(0, count);
+  set(qs);
 }
 
 function Comprehensive() {
   const profile = useCurrentProfile()!;
   const db = useDB();
-  const [subject, setSubject] = useState<string>(SUBJECTS[0]);
+  const [picked, setPicked] = useState<string[]>([SUBJECTS[0]]);
   const [scope, setScope] = useState<"finished" | "all">("finished");
   const [count, setCount] = useState(20);
   const [timed, setTimed] = useState(true);
   const [qs, setQs] = useState<AIQuestion[] | null>(null);
 
+  // Keep the curriculum order whatever order the subjects were ticked in.
+  const chosen = SUBJECTS.filter((s) => picked.includes(s));
+  const allChosen = chosen.length === SUBJECTS.length;
+  const toggle = (s: string) =>
+    setPicked((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
   const groups =
     scope === "finished"
-      ? finishedBySubject(db, profile.username, subject === "all" ? null : subject)
-      : (subject === "all" ? SUBJECTS : [subject]).map((s) => ({
-          subject: s,
-          lessons: lessonSequence(s),
-        }));
+      ? finishedBySubject(db, profile.username, chosen)
+      : chosen.map((s) => ({ subject: s, lessons: lessonSequence(s) }));
   const lessonCount = groups.reduce((a, g) => a + g.lessons.length, 0);
 
   if (qs)
@@ -116,7 +100,7 @@ function Comprehensive() {
           void logReview(
             profile.username,
             "comprehensive",
-            subject === "all" ? null : subject,
+            allChosen ? null : chosen.join("، "),
             score,
             total,
           ).catch(() => {})
@@ -130,21 +114,31 @@ function Comprehensive() {
       <div>
         <h3 className="text-xl font-bold">📝 اختبار شامل</h3>
         <p className="text-sm text-muted-foreground">
-          اختبار طويل يغطي مادة كاملة أو كل المواد — 5 نجوم عند النجاح (60%).
+          اختبار طويل يغطي مادة أو أكثر — 5 نجوم عند النجاح (60%).
         </p>
       </div>
       <div>
-        <label className="text-xs text-muted-foreground">المادة</label>
-        <select
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          className="w-full bg-input rounded-2xl px-4 py-3 mt-1 outline-none"
-        >
-          <option value="all">كل المواد</option>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-muted-foreground">المواد (اختر مادة أو أكثر)</label>
+          <button
+            onClick={() => setPicked(allChosen ? [] : [...SUBJECTS])}
+            className="text-xs font-semibold text-primary"
+          >
+            {allChosen ? "إلغاء الكل" : "كل المواد"}
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-1">
           {SUBJECTS.map((s) => (
-            <option key={s}>{s}</option>
+            <button
+              key={s}
+              onClick={() => toggle(s)}
+              className={`rounded-2xl px-4 py-2 text-sm font-semibold border ${picked.includes(s) ? "bg-hero text-primary-foreground border-transparent" : "glass border-border"}`}
+            >
+              {picked.includes(s) ? "✓ " : ""}
+              {s}
+            </button>
           ))}
-        </select>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
         {(
@@ -188,7 +182,11 @@ function Comprehensive() {
         onClick={() => void startWith(groups, count, setQs)}
         className="w-full bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow disabled:opacity-50"
       >
-        {lessonCount ? "ابدأ الاختبار" : "لا توجد دروس منتهية — حدّدها من تبويب المواد"}
+        {!chosen.length
+          ? "اختر مادة واحدة على الأقل"
+          : lessonCount
+            ? "ابدأ الاختبار"
+            : "لا توجد دروس منتهية — حدّدها من تبويب المواد"}
       </button>
     </div>
   );

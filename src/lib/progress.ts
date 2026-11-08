@@ -119,6 +119,57 @@ export function battleLessons(
   return commonLessons(progress, usernames, subject);
 }
 
+/** What a battle covers: one subject (optionally a unit / lesson) or several whole subjects. */
+export interface BattleScope {
+  subject: string;
+  /** Several subjects: every lesson both students finished in each of them. */
+  subjects?: string[];
+  unit?: string;
+  lesson?: string;
+}
+
+/** Lessons of a battle grouped by subject. */
+export function battleGroups(
+  progress: LessonProgress[],
+  usernames: string[],
+  scope: BattleScope,
+): { subject: string; lessons: LessonRef[] }[] {
+  if (scope.subjects && scope.subjects.length > 1)
+    return scope.subjects.map((s) => ({
+      subject: s,
+      lessons: commonLessons(progress, usernames, s),
+    }));
+  return [
+    {
+      subject: scope.subject,
+      lessons: battleLessons(progress, usernames, scope.subject, scope.unit, scope.lesson),
+    },
+  ];
+}
+
+/** Subjects of a multi-subject battle where the students have no finished lesson in common. */
+export function emptyBattleSubjects(
+  progress: LessonProgress[],
+  usernames: string[],
+  scope: BattleScope,
+): string[] {
+  return battleGroups(progress, usernames, scope)
+    .filter((g) => g.lessons.length === 0)
+    .map((g) => g.subject);
+}
+
+/** Students who can't play this battle yet (see battleBlockers); works for several subjects. */
+export function battleScopeBlockers(
+  progress: LessonProgress[],
+  usernames: string[],
+  scope: BattleScope,
+): string[] {
+  if (scope.subjects && scope.subjects.length > 1)
+    // common lessons are finished by both by definition; only an empty subject blocks
+    return emptyBattleSubjects(progress, usernames, scope).length ? usernames : [];
+  return battleBlockers(progress, usernames, scope.subject, scope.unit, scope.lesson);
+}
+
 /** Students (from the list) who haven't finished every lesson in the battle scope. */
 export function battleBlockers(
   progress: LessonProgress[],

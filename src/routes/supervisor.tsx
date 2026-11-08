@@ -22,7 +22,7 @@ import {
   type Challenge,
   type LiveBattleConfig,
 } from "@/lib/store";
-import { SUBJECTS, getQuestionsFromLessons } from "@/lib/ai-content";
+import { SUBJECTS, getQuestionsFromGroups } from "@/lib/ai-content";
 import { LessonProgressEditor } from "@/components/LessonProgressEditor";
 import { QuestionBank } from "@/components/QuestionBank";
 import { SummaryEditor } from "@/components/SummaryEditor";
@@ -36,11 +36,13 @@ import { markShown, seenToday } from "@/lib/seenToday";
 import { AchievementsCard } from "@/components/Motivation";
 import { WIN_QUOTES, pickBySeed, starsFor } from "@/lib/motivation";
 import {
-  battleBlockers,
-  battleLessons,
+  battleGroups,
+  battleScopeBlockers,
   commonFullUnits,
   commonLessons,
+  emptyBattleSubjects,
   unitsOf,
+  type BattleScope,
 } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 
@@ -191,7 +193,11 @@ function BattlesTab() {
   const students = db.profiles.filter((p) => p.role === "student");
   const [p1, setP1] = useState("");
   const [p2, setP2] = useState("");
-  const [subject, setSubject] = useState(SUBJECTS[0]);
+  const [picked, setPicked] = useState<string[]>([SUBJECTS[0]]);
+  // curriculum order whatever order the subjects were ticked in
+  const chosen = SUBJECTS.filter((s) => picked.includes(s));
+  const multi = chosen.length > 1;
+  const subject = chosen[0] ?? "";
   const [unit, setUnit] = useState("");
   const [lesson, setLesson] = useState("");
   const [rounds, setRounds] = useState(10);
@@ -203,16 +209,18 @@ function BattlesTab() {
   const pair = p1 && p2 ? [p1, p2] : [];
   const shared = pair.length ? commonLessons(db.progress, pair, subject) : [];
   const fullUnits = pair.length ? commonFullUnits(db.progress, pair, subject) : [];
-  const scopeLessons = battleLessons(
-    db.progress,
-    pair,
-    subject,
-    unit || undefined,
-    lesson || undefined,
-  );
+  const scope: BattleScope = multi
+    ? { subject: chosen.join("، "), subjects: chosen }
+    : { subject, unit: unit || undefined, lesson: lesson || undefined };
+  const groups = battleGroups(db.progress, pair, scope);
+  const emptySubjects = pair.length ? emptyBattleSubjects(db.progress, pair, scope) : [];
   const blocked =
-    pair.length > 0 &&
-    battleBlockers(db.progress, pair, subject, unit || undefined, lesson || undefined).length > 0;
+    !chosen.length || (pair.length > 0 && battleScopeBlockers(db.progress, pair, scope).length > 0);
+  const toggleSubject = (s: string) => {
+    setPicked((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
+    setUnit("");
+    setLesson("");
+  };
   const nameOf = (u: string) => students.find((s) => s.username === u)?.displayName ?? u;
   const scopeValue = lesson ? `l:${unit}\u0001${lesson}` : unit ? `u:${unit}` : "";
   const onScope = (v: string) => {
@@ -230,7 +238,7 @@ function BattlesTab() {
     .filter((c) => isLiveBattle(c) && c.from === supervisorUsername)
     .sort((a, b) => b.createdAt - a.createdAt);
 
-  const availableQs = getQuestionsFromLessons(subject, scopeLessons, 100000).length;
+  const availableQs = getQuestionsFromGroups(groups, 100000).length;
 
   const removeBattle = async (b: Challenge) => {
     if (!confirm("حذف هذه المسابقة نهائياً؟")) return;
@@ -246,9 +254,7 @@ function BattlesTab() {
         supervisorUsername,
         p1,
         p2,
-        subject,
-        unit: unit || undefined,
-        lesson: lesson || undefined,
+        ...scope,
         // can't ask more questions than the chosen lessons have
         totalRounds: Math.max(1, Math.min(rounds, availableQs)),
         seconds: Math.max(5, Math.min(600, seconds)),
@@ -325,60 +331,75 @@ function BattlesTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">المادة</label>
-                <select
-                  value={subject}
-                  onChange={(e) => {
-                    setSubject(e.target.value);
-                    setUnit("");
-                    setLesson("");
-                  }}
-                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none"
-                >
-                  {SUBJECTS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-                <label className="block text-xs text-muted-foreground mb-1 mt-3">
-                  نطاق الأسئلة
+                <label className="block text-xs text-muted-foreground mb-1">
+                  المواد (مادة واحدة أو أكثر)
                 </label>
-                <select
-                  value={scopeValue}
-                  onChange={(e) => onScope(e.target.value)}
-                  disabled={pair.length === 0 || shared.length === 0}
-                  className="w-full bg-input rounded-2xl px-4 py-3 outline-none disabled:opacity-50"
-                >
-                  {pair.length === 0 ? (
-                    <option value="">اختر الطالبين أولاً</option>
-                  ) : shared.length === 0 ? (
-                    <option value="">لا توجد دروس أنهاها الطالبان</option>
-                  ) : (
-                    <>
-                      <option value="">كل الدروس المشتركة ({shared.length} درس)</option>
-                      {unitsOf(subject)
-                        .filter((u) => shared.some((l) => l.unit === u))
-                        .map((u) => (
-                          <optgroup key={u} label={u}>
-                            {fullUnits.includes(u) && (
-                              <option value={`u:${u}`}>✅ الوحدة كاملة</option>
-                            )}
-                            {shared
-                              .filter((l) => l.unit === u)
-                              .map((l) => (
-                                <option key={l.lesson} value={`l:${u}\u0001${l.lesson}`}>
-                                  {l.lesson}
-                                </option>
-                              ))}
-                          </optgroup>
-                        ))}
-                    </>
-                  )}
-                </select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  تظهر فقط الدروس والوحدات الكاملة التي أنهاها الطالبان معاً.
-                </p>
+                <div className="flex flex-wrap gap-2">
+                  {SUBJECTS.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => toggleSubject(s)}
+                      className={`rounded-2xl px-3 py-2 text-sm font-semibold border ${picked.includes(s) ? "bg-hero text-primary-foreground border-transparent" : "glass border-border"}`}
+                    >
+                      {picked.includes(s) ? "✓ " : ""}
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                {multi ? (
+                  <p className="text-xs text-muted-foreground mt-3 glass rounded-2xl p-3">
+                    مسابقة في {chosen.length} مواد: الأسئلة من كل الدروس التي أنهاها الطالبان معاً
+                    في كل مادة.
+                    {pair.length > 0 &&
+                      groups.map((g) => (
+                        <span key={g.subject} className="block mt-1">
+                          {g.subject}: {g.lessons.length} درس
+                        </span>
+                      ))}
+                  </p>
+                ) : (
+                  <>
+                    <label className="block text-xs text-muted-foreground mb-1 mt-3">
+                      نطاق الأسئلة
+                    </label>
+                    <select
+                      value={scopeValue}
+                      onChange={(e) => onScope(e.target.value)}
+                      disabled={pair.length === 0 || shared.length === 0}
+                      className="w-full bg-input rounded-2xl px-4 py-3 outline-none disabled:opacity-50"
+                    >
+                      {pair.length === 0 ? (
+                        <option value="">اختر الطالبين أولاً</option>
+                      ) : shared.length === 0 ? (
+                        <option value="">لا توجد دروس أنهاها الطالبان</option>
+                      ) : (
+                        <>
+                          <option value="">كل الدروس المشتركة ({shared.length} درس)</option>
+                          {unitsOf(subject)
+                            .filter((u) => shared.some((l) => l.unit === u))
+                            .map((u) => (
+                              <optgroup key={u} label={u}>
+                                {fullUnits.includes(u) && (
+                                  <option value={`u:${u}`}>✅ الوحدة كاملة</option>
+                                )}
+                                {shared
+                                  .filter((l) => l.unit === u)
+                                  .map((l) => (
+                                    <option key={l.lesson} value={`l:${u}\u0001${l.lesson}`}>
+                                      {l.lesson}
+                                    </option>
+                                  ))}
+                              </optgroup>
+                            ))}
+                        </>
+                      )}
+                    </select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      تظهر فقط الدروس والوحدات الكاملة التي أنهاها الطالبان معاً.
+                    </p>
+                  </>
+                )}
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">عدد الأسئلة</label>
@@ -410,14 +431,19 @@ function BattlesTab() {
                 </p>
               </div>
             </div>
-            {blocked && (
+            {blocked && chosen.length > 0 && pair.length > 0 && (
               <div className="rounded-2xl border border-warning/40 bg-warning/10 p-4 text-sm space-y-1">
-                <p className="font-bold text-warning">⚠️ لا يمكن بدء مسابقة في {subject}</p>
+                <p className="font-bold text-warning">
+                  ⚠️ لا يمكن بدء مسابقة في {(multi ? emptySubjects : [subject]).join("، ")}
+                </p>
                 <p>
-                  لا توجد دروس في هذه المادة أنهاها {nameOf(p1)} و{nameOf(p2)} معاً.
+                  لا توجد دروس في {multi && emptySubjects.length > 1 ? "هذه المواد" : "هذه المادة"}{" "}
+                  أنهاها {nameOf(p1)} و{nameOf(p2)} معاً.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  اختر مادة أخرى، أو حدّث الدروس المنتهية من تبويب المتابعة.
+                  {multi
+                    ? "أزل هذه المادة من الاختيار، أو حدّث الدروس المنتهية من تبويب المتابعة."
+                    : "اختر مادة أخرى، أو حدّث الدروس المنتهية من تبويب المتابعة."}
                 </p>
               </div>
             )}
@@ -426,7 +452,11 @@ function BattlesTab() {
               disabled={!p1 || !p2 || creating || blocked}
               className="w-full bg-hero text-primary-foreground font-bold py-3 rounded-2xl shadow-glow disabled:opacity-50"
             >
-              {creating ? "جارٍ الإنشاء..." : "إنشاء المسابقة ⚡"}
+              {creating
+                ? "جارٍ الإنشاء..."
+                : chosen.length
+                  ? "إنشاء المسابقة ⚡"
+                  : "اختر مادة واحدة على الأقل"}
             </button>
           </>
         )}
@@ -690,17 +720,20 @@ function SupervisorBattleRoom({
   }, [battle.id]);
 
   const players = [cfg.p1, cfg.p2];
-  const startBlockers = battleBlockers(db.progress, players, cfg.subject, cfg.unit, cfg.lesson);
+  const startBlockers = battleScopeBlockers(db.progress, players, cfg);
   const [starting, setStarting] = useState(false);
 
   const startBattle = async () => {
     if (startBlockers.length > 0 || starting) return;
     setStarting(true);
-    const lessons = battleLessons(db.progress, players, cfg.subject, cfg.unit, cfg.lesson);
     // avoid questions either student already saw today, then older battle questions
     const seen = await seenToday(players).catch(() => new Set<string>());
     usedBattleQuestions().forEach((id) => seen.add(id));
-    const picked = getQuestionsFromLessons(cfg.subject, lessons, cfg.totalRounds, seen);
+    const picked = getQuestionsFromGroups(
+      battleGroups(db.progress, players, cfg),
+      cfg.totalRounds,
+      seen,
+    );
     rememberBattleQuestions(picked.map((q) => q.id));
     markShown(
       players,
