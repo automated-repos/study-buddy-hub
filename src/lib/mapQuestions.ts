@@ -1,4 +1,5 @@
 import { HL } from "./questions/hi-units";
+import { GL } from "./questions/geo-units";
 // Map questions: a real map (Natural Earth data via world-atlas) with countries highlighted
 // and/or places marked, and a multiple-choice question about it.
 // The right answer is written first; options are shuffled when shown.
@@ -41,7 +42,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g1",
     subject: G,
-    lesson: "الخريطة السياسية للعالم",
+    lesson: GL.g2l3,
     q: "الدولة الملوّنة هي أكبر دول العالم مساحة، وهي:",
     fit: WORLD,
     highlight: ["Russia"],
@@ -51,7 +52,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g2",
     subject: G,
-    lesson: "الخريطة السياسية للعالم",
+    lesson: GL.g2l3,
     q: "الدولة الملوّنة هي أكبر دولة أفريقية مساحة:",
     fit: AFRICA,
     highlight: ["Algeria"],
@@ -61,7 +62,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g3",
     subject: G,
-    lesson: "الخريطة السياسية للعالم",
+    lesson: GL.g2l3,
     q: "الدولة الملوّنة هي أحدث دولة أفريقية مستقلة (2011):",
     fit: AFRICA,
     highlight: ["S. Sudan"],
@@ -71,7 +72,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g4",
     subject: G,
-    lesson: "الخريطة السياسية للعالم",
+    lesson: GL.g2l3,
     q: "الدولة الملوّنة هي أكثر الدول الأفريقية سكاناً:",
     fit: AFRICA,
     highlight: ["Nigeria"],
@@ -81,7 +82,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g5",
     subject: G,
-    lesson: "الخريطة السياسية للعالم",
+    lesson: GL.g2l3,
     q: "الدولتان الملوّنتان نشأتا عن انقسام تشيكوسلوفاكيا عام 1993:",
     fit: EUROPE,
     highlight: ["Czechia", "Slovakia"],
@@ -91,7 +92,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g6",
     subject: G,
-    lesson: "الخريطة السياسية للعالم",
+    lesson: GL.g2l3,
     q: "الدولة الملوّنة استقلت عن إثيوبيا عام 1993:",
     fit: [30, 5, 52, 22],
     highlight: ["Eritrea"],
@@ -101,7 +102,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g7",
     subject: G,
-    lesson: "الخريطة السياسية للعالم",
+    lesson: GL.g2l3,
     q: "الجزيرة الملوّنة هي أكبر جزيرة في العالم:",
     fit: [-75, 55, -5, 84],
     highlight: ["Greenland"],
@@ -112,7 +113,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g8",
     subject: G,
-    lesson: "مقومات الدولة",
+    lesson: GL.g1l2,
     q: "الدولة الملوّنة مثال للدولة الحبيسة:",
     fit: AFRICA,
     highlight: ["Chad"],
@@ -122,7 +123,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g9",
     subject: G,
-    lesson: "مقومات الدولة",
+    lesson: GL.g1l2,
     q: "الدولة الملوّنة دولة حبيسة في شرق أفريقيا:",
     fit: [25, -5, 55, 20],
     highlight: ["Ethiopia"],
@@ -132,7 +133,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g10",
     subject: G,
-    lesson: "مقومات الدولة",
+    lesson: GL.g1l2,
     q: "الدولة الملوّنة مثال للشكل المستطيل (الطولي):",
     fit: [-90, -57, -30, -15],
     highlight: ["Chile"],
@@ -142,7 +143,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g11",
     subject: G,
-    lesson: "مقومات الدولة",
+    lesson: GL.g1l2,
     q: "الدولة الملوّنة مثال للدولة الأرخبيلية (المجزأة):",
     fit: [90, -12, 145, 10],
     highlight: ["Indonesia"],
@@ -152,7 +153,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g12",
     subject: G,
-    lesson: "مقومات الدولة",
+    lesson: GL.g1l2,
     q: "الدولة الملوّنة دولة جزرية مجزأة في شرق آسيا:",
     fit: [120, 25, 150, 46],
     highlight: ["Japan"],
@@ -162,7 +163,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g13",
     subject: G,
-    lesson: "مقومات الدولة",
+    lesson: GL.g1l2,
     q: "الدولة الملوّنة مثال للشكل المندمج في أفريقيا:",
     fit: AFRICA,
     highlight: ["Egypt"],
@@ -173,7 +174,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g14",
     subject: G,
-    lesson: "الحدود السياسية",
+    lesson: GL.g2l2,
     q: "الدولتان الملوّنتان تفصل بينهما جبال البرانس، وهما:",
     fit: [-12, 35, 10, 52],
     highlight: ["France", "Spain"],
@@ -183,7 +184,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g15",
     subject: G,
-    lesson: "الحدود السياسية",
+    lesson: GL.g2l2,
     q: "الدولة الملوّنة جارة مصر الجنوبية، والحد بينهما دائرة عرض 22° شمالاً:",
     fit: [20, 5, 42, 32],
     highlight: ["Sudan"],
@@ -193,7 +194,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g16",
     subject: G,
-    lesson: "الحدود السياسية",
+    lesson: GL.g2l2,
     q: "الدولتان الملوّنتان يفصل بينهما حد قريب من دائرة عرض 38° شمالاً:",
     fit: [118, 30, 135, 45],
     highlight: ["North Korea", "South Korea"],
@@ -203,7 +204,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g17",
     subject: G,
-    lesson: "الحدود السياسية",
+    lesson: GL.g2l2,
     q: "الدولتان الملوّنتان يتبع الحد بينهما في جزء كبير منه دائرة عرض 49° شمالاً:",
     fit: [-140, 20, -50, 72],
     highlight: ["United States of America", "Canada"],
@@ -218,7 +219,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g18",
     subject: G,
-    lesson: "الحدود السياسية",
+    lesson: GL.g2l2,
     q: "الدولة الملوّنة جارة مصر الغربية:",
     fit: [8, 18, 37, 34],
     highlight: ["Libya"],
@@ -229,7 +230,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g19",
     subject: G,
-    lesson: "الاتحاد الأوروبي",
+    lesson: GL.g3l1,
     q: "الدولة الملوّنة خرجت من الاتحاد الأوروبي عام 2020:",
     fit: EUROPE,
     highlight: ["United Kingdom"],
@@ -239,7 +240,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g20",
     subject: G,
-    lesson: "الاتحاد الأوروبي",
+    lesson: GL.g3l1,
     q: "الدولة الملوّنة دولة أوروبية ليست عضواً في الاتحاد الأوروبي:",
     fit: EUROPE,
     highlight: ["Norway"],
@@ -249,7 +250,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g21",
     subject: G,
-    lesson: "الاتحاد الأوروبي",
+    lesson: GL.g3l1,
     q: "الدولة الملوّنة هي آخر دولة انضمت للاتحاد الأوروبي (2013):",
     fit: [5, 38, 30, 52],
     highlight: ["Croatia"],
@@ -259,7 +260,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g22",
     subject: G,
-    lesson: "الاتحاد الأوروبي",
+    lesson: GL.g3l1,
     q: "يقع مقر المفوضية الأوروبية في عاصمة الدولة الملوّنة:",
     fit: [-5, 45, 15, 56],
     highlight: ["Belgium"],
@@ -269,7 +270,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g23",
     subject: G,
-    lesson: "الاتحاد الأوروبي",
+    lesson: GL.g3l1,
     q: "الدول الملوّنة هي الدول الست المؤسسة للجماعة الأوروبية، ما الذي أسسته عام 1951؟",
     fit: [-6, 41, 20, 56],
     highlight: ["France", "Germany", "Italy", "Belgium", "Netherlands", "Luxembourg"],
@@ -280,7 +281,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g24",
     subject: G,
-    lesson: "التكتلات الإقليمية الأخرى",
+    lesson: GL.g3l1,
     q: "الدول الملوّنة أعضاء في تكتل اقتصادي اسمه:",
     fit: [90, -12, 130, 28],
     highlight: [
@@ -301,7 +302,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g25",
     subject: G,
-    lesson: "التكتلات الإقليمية الأخرى",
+    lesson: GL.g3l1,
     q: "الدول الملوّنة أعضاء في تكتل اقتصادي في أمريكا الجنوبية:",
     fit: [-85, -56, -30, 10],
     highlight: ["Brazil", "Argentina", "Uruguay", "Paraguay"],
@@ -311,7 +312,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g26",
     subject: G,
-    lesson: "التكتلات الإقليمية الأخرى",
+    lesson: GL.g3l1,
     q: "الدول الملوّنة أعضاء في اتفاقية USMCA (نافتا سابقاً)، وهي:",
     fit: [-170, 10, -50, 75],
     highlight: ["United States of America", "Canada", "Mexico"],
@@ -326,7 +327,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g27",
     subject: G,
-    lesson: "التكتلات الإقليمية الأخرى",
+    lesson: GL.g3l1,
     q: "الدول الملوّنة أعضاء في:",
     fit: [34, 12, 60, 32],
     highlight: ["Saudi Arabia", "Kuwait", "Bahrain", "Qatar", "United Arab Emirates", "Oman"],
@@ -336,7 +337,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g28",
     subject: G,
-    lesson: "التكتلات الإقليمية الأخرى",
+    lesson: GL.g3l1,
     q: "الدول الملوّنة من مؤسسي تجمع:",
     fit: WORLD,
     highlight: ["Brazil", "Russia", "India", "China", "South Africa"],
@@ -347,7 +348,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g29",
     subject: G,
-    lesson: "منظمة الأمم المتحدة",
+    lesson: GL.g4l1,
     q: "ما الذي يجمع الدول الملوّنة؟",
     fit: WORLD,
     highlight: ["United States of America", "Russia", "China", "United Kingdom", "France"],
@@ -362,7 +363,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g30",
     subject: G,
-    lesson: "منظمة الأمم المتحدة",
+    lesson: GL.g4l1,
     q: "النقطة على الخريطة تحدد مقر الأمم المتحدة في مدينة:",
     fit: [-130, 20, -55, 55],
     points: [{ lon: -73.97, lat: 40.75, label: "نيويورك" }],
@@ -372,7 +373,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g31",
     subject: G,
-    lesson: "منظمة الأمم المتحدة",
+    lesson: GL.g4l1,
     q: "النقطة على الخريطة تحدد مقر محكمة العدل الدولية في مدينة:",
     fit: [-10, 42, 20, 58],
     points: [{ lon: 4.3, lat: 52.08, label: "لاهاي" }],
@@ -383,7 +384,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g32",
     subject: G,
-    lesson: "المكانة الاستراتيجية لمصر",
+    lesson: GL.g1l2,
     q: "النقطة تحدد ممراً ملاحياً يربط البحر المتوسط بالبحر الأحمر:",
     fit: MIDEAST,
     points: [{ lon: 32.35, lat: 30.6, label: "قناة السويس" }],
@@ -393,7 +394,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g33",
     subject: G,
-    lesson: "المكانة الاستراتيجية لمصر",
+    lesson: GL.g1l2,
     q: "النقطة تحدد المضيق الذي يتحكم في المدخل الجنوبي للبحر الأحمر:",
     fit: [30, 8, 52, 30],
     points: [{ lon: 43.4, lat: 12.6, label: "باب المندب" }],
@@ -403,7 +404,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g34",
     subject: G,
-    lesson: "المكانة الاستراتيجية لمصر",
+    lesson: GL.g1l2,
     q: "النقطة تحدد المضيق الذي يتحكم في مدخل خليج العقبة:",
     fit: [31, 26, 37, 31],
     points: [{ lon: 34.47, lat: 27.97, label: "مضيق تيران" }],
@@ -413,7 +414,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g35",
     subject: G,
-    lesson: "المكانة الاستراتيجية لمصر",
+    lesson: GL.g1l2,
     q: "النقطة تحدد شبه الجزيرة التي تمثل الجسر البري بين أفريقيا وآسيا:",
     fit: EGYPT,
     points: [{ lon: 33.8, lat: 29.5, label: "سيناء" }],
@@ -423,7 +424,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g36",
     subject: G,
-    lesson: "المكانة الاستراتيجية لمصر",
+    lesson: GL.g1l2,
     q: "النقطة تحدد المدينة الواقعة عند المدخل الشمالي لقناة السويس:",
     fit: DELTA,
     points: [{ lon: 32.3, lat: 31.26, label: "بورسعيد" }],
@@ -433,7 +434,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g37",
     subject: G,
-    lesson: "المكانة الاستراتيجية لمصر",
+    lesson: GL.g1l2,
     q: "النقطة تحدد أكبر ميناء مصري على البحر المتوسط:",
     fit: DELTA,
     points: [{ lon: 29.92, lat: 31.2, label: "الإسكندرية" }],
@@ -443,7 +444,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g38",
     subject: G,
-    lesson: "المكانة الاستراتيجية لمصر",
+    lesson: GL.g1l2,
     q: "النقطة تحدد مضيقاً يربط البحر المتوسط بالمحيط الأطلسي:",
     fit: [-15, 30, 10, 45],
     points: [{ lon: -5.6, lat: 35.95, label: "جبل طارق" }],
@@ -454,7 +455,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g39",
     subject: G,
-    lesson: "علاقات مصر الإقليمية",
+    lesson: GL.g2l4,
     q: "الدولة الملوّنة تقيم سد النهضة على النيل الأزرق:",
     fit: [20, -5, 50, 25],
     highlight: ["Ethiopia"],
@@ -464,7 +465,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g40",
     subject: G,
-    lesson: "علاقات مصر الإقليمية",
+    lesson: GL.g2l4,
     q: "النقطة تحدد البحيرة التي ينبع منها النيل الأبيض:",
     fit: [22, -8, 45, 20],
     points: [{ lon: 33.0, lat: -1.0, label: "بحيرة فيكتوريا" }],
@@ -474,7 +475,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g41",
     subject: G,
-    lesson: "علاقات مصر الإقليمية",
+    lesson: GL.g2l4,
     q: "النقطة تحدد المدينة التي يلتقي عندها النيل الأزرق بالنيل الأبيض:",
     fit: [22, 5, 45, 25],
     points: [{ lon: 32.53, lat: 15.6, label: "الخرطوم" }],
@@ -484,7 +485,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g42",
     subject: G,
-    lesson: "علاقات مصر الإقليمية",
+    lesson: GL.g2l4,
     q: "النقطة تحدد البحيرة التي ينبع منها النيل الأزرق:",
     fit: [30, 5, 45, 18],
     points: [{ lon: 37.3, lat: 12.0, label: "بحيرة تانا" }],
@@ -494,7 +495,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g43",
     subject: G,
-    lesson: "علاقات مصر الإقليمية",
+    lesson: GL.g2l4,
     q: "يقع مقر جامعة الدول العربية في عاصمة الدولة الملوّنة:",
     fit: MIDEAST,
     highlight: ["Egypt"],
@@ -505,7 +506,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g44",
     subject: G,
-    lesson: "علاقات مصر الدولية",
+    lesson: GL.g4l2,
     q: "تتعاون مصر مع الدولة الملوّنة في إنشاء محطة الضبعة النووية:",
     fit: WORLD,
     highlight: ["Russia"],
@@ -515,7 +516,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g45",
     subject: G,
-    lesson: "علاقات مصر الدولية",
+    lesson: GL.g4l2,
     q: "تشارك مصر في مبادرة «الحزام والطريق» مع الدولة الملوّنة:",
     fit: [60, 10, 140, 55],
     highlight: ["China"],
@@ -525,7 +526,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g46",
     subject: G,
-    lesson: "علاقات مصر الدولية",
+    lesson: GL.g4l2,
     q: "النقطة تحدد مدينة شرم الشيخ، التي استضافت عام 2022:",
     fit: EGYPT,
     points: [{ lon: 34.33, lat: 27.91, label: "شرم الشيخ" }],
@@ -535,7 +536,7 @@ export const MAP_QUESTIONS: MapQuestion[] = [
   {
     id: "map-g47",
     subject: G,
-    lesson: "علاقات مصر الدولية",
+    lesson: GL.g4l2,
     q: "عُقد أول مؤتمر لحركة عدم الانحياز 1961 في عاصمة الدولة الملوّنة (يوغوسلافيا سابقاً):",
     fit: [10, 38, 30, 50],
     highlight: ["Serbia"],

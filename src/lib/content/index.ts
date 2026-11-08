@@ -7,6 +7,7 @@ import { STUDY_AR } from "./ar";
 import { STUDY_HI } from "./hi";
 import { STUDY_HI_2 } from "./hi2";
 import { STUDY_GEO } from "./geo";
+import { STUDY_GEO_2 } from "./geo2";
 import { STUDY_FR } from "./fr";
 
 export type { LessonStudy, MapBranch, MapItem, StudyTable } from "./types";
@@ -18,6 +19,7 @@ const BUILT_IN: LessonStudy[] = [
   ...STUDY_HI,
   ...STUDY_HI_2,
   ...STUDY_GEO,
+  ...STUDY_GEO_2,
   ...STUDY_FR,
 ];
 
