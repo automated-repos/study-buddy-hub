@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import confetti from "canvas-confetti";
 import { SUBJECTS } from "@/lib/ai-content";
 import { finishedLessons, isFinished, lessonSequence } from "@/lib/progress";
 import { dayMessage } from "@/lib/motivation";
@@ -7,13 +6,15 @@ import {
   addTasks,
   dateKey,
   deleteTask,
-  updateTask,
   useCurrentProfile,
   useDB,
   type DB,
+  type NewTask,
   type StudyTask,
 } from "@/lib/store";
 import { AchievementsCard } from "@/components/Motivation";
+import { goalTitle, weekStart } from "@/lib/goals";
+import { GoalForm, GoalRow, WeekCard, WeekPlanner, WeekReportModal, useGoalToggle } from "./Goals";
 
 const WEEKDAYS = ["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"];
 const MONTHS = [
@@ -33,17 +34,31 @@ const MONTHS = [
 
 /** Suggested tasks: next unfinished lesson per subject, plus one review of a finished lesson. */
 export function suggestTasks(db: Pick<DB, "progress">, username: string) {
-  const out: { subject: string; title: string; minutes: number }[] = [];
-  const reviews: { subject: string; title: string; minutes: number }[] = [];
+  type Draft = Omit<NewTask, "date">;
+  const out: Draft[] = [];
+  const reviews: Draft[] = [];
   for (const subject of SUBJECTS) {
     const done = finishedLessons(db.progress, username, subject);
     const seq = lessonSequence(subject);
     const next = seq.find((l) => !isFinished(done, l));
-    if (next) out.push({ subject, title: `ذاكر: ${next.lesson}`, minutes: 45 });
+    if (next)
+      out.push({
+        subject,
+        title: goalTitle("study", next.lesson),
+        minutes: 45,
+        kind: "study",
+        ...next,
+      });
     const finished = seq.filter((l) => isFinished(done, l));
     if (finished.length) {
       const pick = finished[(new Date().getDate() + subject.length) % finished.length];
-      reviews.push({ subject, title: `راجع: ${pick.lesson} + اختبار سريع`, minutes: 20 });
+      reviews.push({
+        subject,
+        title: `${goalTitle("review", pick.lesson)} + اختبار سريع`,
+        minutes: 20,
+        kind: "review",
+        ...pick,
+      });
     }
   }
   return [...out.slice(0, 3), ...reviews.slice(0, 2)];
@@ -68,9 +83,13 @@ export function ScheduleView({ onOpenTests }: { onOpenTests: () => void }) {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [draft, setDraft] = useState({ subject: SUBJECTS[0], title: "", minutes: 30 });
+  const [modal, setModal] = useState<"plan" | "report" | null>(null);
 
-  const myTasks = useMemo(() => db.tasks.filter((t) => t.ownerUsername === me), [db.tasks, me]);
+  // day tasks only; week goals live in the week card
+  const myTasks = useMemo(
+    () => db.tasks.filter((t) => t.ownerUsername === me && t.scope === "day"),
+    [db.tasks, me],
+  );
   const minutesByDay = useMemo(() => {
     const m = new Map<string, number>();
     for (const s of db.sessions)
@@ -98,13 +117,7 @@ export function ScheduleView({ onOpenTests }: { onOpenTests: () => void }) {
     }
   };
 
-  const toggle = (t: StudyTask) =>
-    run(async () => {
-      await updateTask(t.id, { done: !t.done });
-      const nowDone = dayTasks.filter((x) => (x.id === t.id ? !t.done : x.done)).length;
-      if (!t.done && nowDone === dayTasks.length)
-        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
-    });
+  const goal = useGoalToggle(dayTasks);
 
   // biweekly review status
   const lastReview = db.reviews
@@ -155,11 +168,23 @@ export function ScheduleView({ onOpenTests }: { onOpenTests: () => void }) {
         </p>
       )}
 
+      <WeekCard onPlan={() => setModal("plan")} onReport={() => setModal("report")} />
+      {modal === "plan" && <WeekPlanner onClose={() => setModal(null)} />}
+      {modal === "report" && (
+        <WeekReportModal
+          start={weekStart()}
+          onClose={() => setModal(null)}
+          onPlan={() => setModal("plan")}
+        />
+      )}
+
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Tasks of the selected day */}
+        {/* Goals of the selected day */}
         <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="font-bold text-lg">📋 جدول {selected === today ? "اليوم" : selected}</h3>
+            <h3 className="font-bold text-lg">
+              🎯 أهداف {selected === today ? "اليوم" : selected}
+            </h3>
             {!isPast && (
               <button
                 disabled={busy}
@@ -180,90 +205,27 @@ export function ScheduleView({ onOpenTests }: { onOpenTests: () => void }) {
 
           {dayTasks.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              لا توجد مهام لهذا اليوم. {isPast ? "" : "اضغط «اقترح لي خطة» أو أضف مهامك بنفسك."}
+              لا توجد أهداف لهذا اليوم. {isPast ? "" : "اضغط «اقترح لي خطة» أو أضف أهدافك بنفسك."}
             </p>
           )}
 
           <ul className="space-y-2">
-            {dayTasks.map((t) => (
-              <li
+            {dayTasks.map((t: StudyTask) => (
+              <GoalRow
                 key={t.id}
-                className={`glass rounded-2xl p-3 flex items-center gap-3 ${t.done ? "opacity-70" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  className="size-5 accent-primary"
-                  checked={t.done}
-                  disabled={busy}
-                  onChange={() => void toggle(t)}
-                />
-                <div className="flex-1">
-                  <div className={`text-sm font-semibold ${t.done ? "line-through" : ""}`}>
-                    {t.title}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {t.subject} • {t.minutes} دقيقة
-                  </div>
-                </div>
-                <button
-                  disabled={busy}
-                  onClick={() => void run(() => deleteTask(t.id))}
-                  className="text-xs text-destructive"
-                  aria-label="حذف المهمة"
-                >
-                  🗑️
-                </button>
-              </li>
+                t={t}
+                busy={busy || goal.busy}
+                onToggle={() => void goal.toggle(t)}
+                onDelete={() => void run(() => deleteTask(t.id))}
+              />
             ))}
           </ul>
 
-          {!isPast && (
-            <div className="border-t border-border pt-3 space-y-2">
-              <p className="text-xs text-muted-foreground">إضافة مهمة</p>
-              <div className="flex gap-2">
-                <select
-                  value={draft.subject}
-                  onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-                  className="bg-input rounded-xl px-2 py-2 text-sm outline-none"
-                >
-                  {SUBJECTS.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-                <input
-                  value={draft.title}
-                  onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                  placeholder="مثال: حل تمارين الدرس الثاني"
-                  className="flex-1 bg-input rounded-xl px-3 py-2 text-sm outline-none"
-                />
-              </div>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="number"
-                  min={5}
-                  max={240}
-                  step={5}
-                  value={draft.minutes}
-                  onChange={(e) => setDraft({ ...draft, minutes: Number(e.target.value) || 30 })}
-                  className="w-24 bg-input rounded-xl px-3 py-2 text-sm outline-none"
-                />
-                <span className="text-xs text-muted-foreground">دقيقة</span>
-                <button
-                  disabled={busy || !draft.title.trim()}
-                  onClick={() =>
-                    run(async () => {
-                      await addTasks(me, [{ ...draft, title: draft.title.trim(), date: selected }]);
-                      setDraft({ ...draft, title: "" });
-                    })
-                  }
-                  className="mr-auto bg-hero text-primary-foreground font-bold px-4 py-2 rounded-xl disabled:opacity-50 text-sm"
-                >
-                  ➕ إضافة
-                </button>
-              </div>
-            </div>
+          {!isPast && <GoalForm date={selected} />}
+          {(error || goal.error) && (
+            <p className="text-xs text-destructive">تعذّر الحفظ: {error || goal.error}</p>
           )}
-          {error && <p className="text-xs text-destructive">تعذّر الحفظ: {error}</p>}
+          {goal.prompt}
         </div>
 
         {/* Calendar */}
@@ -319,12 +281,12 @@ function Calendar({
       : s === "free"
         ? "bg-primary/35"
         : s >= 1
-        ? "bg-success/70"
-        : s >= 0.6
-          ? "bg-success/45"
-          : s >= 0.3
-            ? "bg-warning/40"
-            : "bg-destructive/30";
+          ? "bg-success/70"
+          : s >= 0.6
+            ? "bg-success/45"
+            : s >= 0.3
+              ? "bg-warning/40"
+              : "bg-destructive/30";
 
   return (
     <div className="bg-card-gradient rounded-3xl p-5 border border-border shadow-soft">

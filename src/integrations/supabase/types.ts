@@ -376,30 +376,42 @@ export type Database = {
           date: string
           done: boolean
           id: string
+          kind: string
+          lesson: string | null
           minutes: number
           owner_username: string
+          scope: string
           subject: string
           title: string
+          unit: string | null
         }
         Insert: {
           created_at?: number
           date: string
           done?: boolean
           id: string
+          kind?: string
+          lesson?: string | null
           minutes?: number
           owner_username: string
+          scope?: string
           subject: string
           title: string
+          unit?: string | null
         }
         Update: {
           created_at?: number
           date?: string
           done?: boolean
           id?: string
+          kind?: string
+          lesson?: string | null
           minutes?: number
           owner_username?: string
+          scope?: string
           subject?: string
           title?: string
+          unit?: string | null
         }
         Relationships: [
           {

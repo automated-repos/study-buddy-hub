@@ -41,6 +41,7 @@ import { BattleHistory } from "@/components/BattleHistory";
 import { PomodoroProvider } from "@/lib/pomodoro";
 import { PomodoroRoom, StudyBar } from "@/components/student/PomodoroRoom";
 import { ScheduleView } from "@/components/student/ScheduleView";
+import { GoalsReminder } from "@/components/student/Goals";
 import { TestsCenter } from "@/components/student/TestsCenter";
 import { StudyMaterial } from "@/components/student/StudyMaterial";
 import type { BMsg, WireQ } from "./supervisor";
@@ -81,7 +82,7 @@ function StudentTabs() {
         <>
           {(
             [
-              ["today", "🎯 جدولي اليوم"],
+              ["today", "🎯 أهدافي وجدولي"],
               ["subjects", "📘 المواد"],
               ["live", "🍅 مذاكرة لايف"],
               ["quiz", "📝 الاختبارات"],
@@ -119,6 +120,10 @@ function StudentTabs() {
       </AnimatePresence>
       {missing.length > 0 && tab !== "subjects" && (
         <RequiredProgressModal missing={missing} onGo={() => setTab("subjects")} />
+      )}
+      {/* goals reminder / weekly report once the data is in and progress is set */}
+      {db.loaded && profile?.role === "student" && missing.length === 0 && (
+        <GoalsReminder onOpenGoals={() => setTab("today")} />
       )}
     </AppShell>
   );

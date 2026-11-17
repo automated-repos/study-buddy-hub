@@ -14,10 +14,12 @@ const PRESETS = [
 export function PomodoroRoom() {
   const profile = useCurrentProfile()!;
   const db = useDB();
-  const { state, remaining, quote, lastMessage, members, start, stop, skipBreak } = usePomodoro();
+  const { state, remaining, quote, lastMessage, members, start, stop, skipBreak, pause, resume } =
+    usePomodoro();
   const [subject, setSubject] = useState(SUBJECTS[0]);
   const [preset, setPreset] = useState(0);
   const running = !!state?.running;
+  const paused = running && state!.pausedLeft !== undefined;
   const total = state ? (state.phase === "focus" ? state.focusMin : state.breakMin) * 60 : 1;
   const pct = running ? 1 - remaining / total : 0;
   const others = members.filter((m) => m.username !== profile.username);
@@ -56,11 +58,13 @@ export function PomodoroRoom() {
               {running ? formatClock(remaining) : formatClock(PRESETS[preset].focus * 60)}
             </div>
             <div className="text-sm text-muted-foreground mt-1">
-              {running
-                ? state!.phase === "focus"
-                  ? `تركيز • ${state!.subject}`
-                  : "استراحة ☕"
-                : "جاهز"}
+              {paused
+                ? "⏸ متوقف مؤقتاً"
+                : running
+                  ? state!.phase === "focus"
+                    ? `تركيز • ${state!.subject}`
+                    : "استراحة ☕"
+                  : "جاهز"}
             </div>
             {running && <div className="text-xs mt-1">🍅 × {state!.cycles}</div>}
           </div>
@@ -69,7 +73,19 @@ export function PomodoroRoom() {
         {running ? (
           <>
             <p className="text-sm font-semibold text-accent">{quote}</p>
-            <div className="flex gap-2 justify-center">
+            <div className="flex flex-wrap gap-2 justify-center">
+              {paused ? (
+                <button
+                  onClick={resume}
+                  className="bg-hero text-primary-foreground font-bold px-5 py-2.5 rounded-2xl shadow-glow"
+                >
+                  استئناف ▶
+                </button>
+              ) : (
+                <button onClick={pause} className="glass rounded-2xl px-5 py-2.5 font-semibold">
+                  إيقاف مؤقت ⏸
+                </button>
+              )}
               {state!.phase === "break" && (
                 <button
                   onClick={skipBreak}
@@ -79,11 +95,13 @@ export function PomodoroRoom() {
                 </button>
               )}
               <button onClick={stop} className="glass rounded-2xl px-5 py-2.5 font-semibold">
-                إيقاف ⏹
+                إنهاء الجلسة ⏹
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              إيقاف الجلسة قبل نهايتها لا يسجّل وقتها. تستطيع التنقل بين التبويبات والمؤقت يعمل.
+              {paused
+                ? "المؤقت متوقف ويحتفظ بالوقت المتبقي — اضغط استئناف لتكمل من حيث توقفت، حتى لو أغلقت الصفحة."
+                : "الإيقاف المؤقت يحفظ الوقت المتبقي لتكمل لاحقاً. إنهاء الجلسة قبل نهايتها لا يسجّل وقتها."}
             </p>
           </>
         ) : (
@@ -156,12 +174,20 @@ function MemberList({ members, me }: { members: RoomMember[]; me?: string }) {
               {m.username === me && " (أنت)"}
             </div>
             <div className="text-xs text-muted-foreground">
-              {m.phase === "focus" ? `🍅 يركّز في ${m.subject}` : "☕ في استراحة"}
+              {m.paused
+                ? `⏸ متوقف مؤقتاً (${m.subject})`
+                : m.phase === "focus"
+                  ? `🍅 يركّز في ${m.subject}`
+                  : "☕ في استراحة"}
             </div>
           </div>
           <span className="relative flex size-2.5">
-            <span className="animate-ping absolute inline-flex size-full rounded-full bg-success opacity-75" />
-            <span className="relative inline-flex rounded-full size-2.5 bg-success" />
+            {!m.paused && (
+              <span className="animate-ping absolute inline-flex size-full rounded-full bg-success opacity-75" />
+            )}
+            <span
+              className={`relative inline-flex rounded-full size-2.5 ${m.paused ? "bg-warning" : "bg-success"}`}
+            />
           </span>
         </li>
       ))}
@@ -180,7 +206,11 @@ export function StudyBar({ onOpen }: { onOpen: () => void }) {
     >
       <span className="font-mono font-bold text-lg">{formatClock(remaining)}</span>
       <span className="font-semibold">
-        {state.phase === "focus" ? `🍅 ${state.subject}` : "☕ استراحة"}
+        {state.pausedLeft !== undefined
+          ? "⏸ متوقف مؤقتاً"
+          : state.phase === "focus"
+            ? `🍅 ${state.subject}`
+            : "☕ استراحة"}
       </span>
       <span className="flex-1 truncate opacity-90">{quote}</span>
     </button>

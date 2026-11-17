@@ -75,15 +75,34 @@ export interface LessonProgress {
   updatedAt: number;
 }
 
+/** study = a new lesson (offers to mark it finished when done), review = revise a finished lesson. */
+export type GoalKind = "study" | "review" | "custom";
+
 export interface StudyTask {
   id: string;
   ownerUsername: string;
-  date: string; // YYYY-MM-DD, local time
+  /** YYYY-MM-DD, local time. For week goals: the Saturday that starts the week. */
+  date: string;
   subject: string;
   title: string;
   minutes: number;
   done: boolean;
   createdAt: number;
+  kind: GoalKind;
+  scope: "day" | "week";
+  unit: string | null;
+  lesson: string | null;
+}
+
+export interface NewTask {
+  date: string;
+  subject: string;
+  title: string;
+  minutes: number;
+  kind?: GoalKind;
+  scope?: "day" | "week";
+  unit?: string | null;
+  lesson?: string | null;
 }
 
 export interface ReviewResult {
@@ -319,6 +338,11 @@ async function fetchAll() {
       minutes: r.minutes,
       done: r.done,
       createdAt: r.created_at,
+      // default until migration 0011 is applied
+      kind: (r.kind as GoalKind | undefined) ?? "custom",
+      scope: (r.scope === "week" ? "week" : "day") as StudyTask["scope"],
+      unit: r.unit ?? null,
+      lesson: r.lesson ?? null,
     })),
     reviews: (reviews.data ?? []).map((r) => ({
       id: r.id,
@@ -897,30 +921,39 @@ export async function restoreQuestion(id: string) {
 }
 
 // ============== Study tasks (daily schedule) ==============
-export async function addTasks(
-  username: string,
-  tasks: { date: string; subject: string; title: string; minutes: number }[],
-) {
+export async function addTasks(username: string, tasks: NewTask[]) {
   if (tasks.length === 0) return;
-  const { error } = await supabase.from("study_tasks").insert(
-    tasks.map((t) => ({
-      id: uid(),
-      owner_username: username,
-      date: t.date,
-      subject: t.subject,
-      title: t.title,
-      minutes: t.minutes,
-      done: false,
-      created_at: Date.now(),
-    })),
-  );
+  const rows = tasks.map((t, i) => ({
+    id: uid(),
+    owner_username: username,
+    date: t.date,
+    subject: t.subject,
+    title: t.title,
+    minutes: t.minutes,
+    done: false,
+    created_at: Date.now() + i, // keeps the given order
+    kind: t.kind ?? "custom",
+    scope: t.scope ?? "day",
+    unit: t.unit ?? null,
+    lesson: t.lesson ?? null,
+  }));
+  let { error } = await supabase.from("study_tasks").insert(rows);
+  // Before migration 0011 the goal columns don't exist: save the plain tasks (week goals can't be stored).
+  if (error && /kind|scope|lesson|unit/.test(error.message)) {
+    const plain = rows
+      .filter((r) => r.scope === "day")
+      .map(({ kind: _k, scope: _s, unit: _u, lesson: _l, ...r }) => r);
+    if (plain.length < rows.length)
+      throw new Error("الأهداف الأسبوعية تحتاج تحديث قاعدة البيانات (migration 0011)");
+    ({ error } = await supabase.from("study_tasks").insert(plain));
+  }
   if (error) throw new Error(error.message);
   await invalidate();
 }
 
 export async function updateTask(
   id: string,
-  patch: Partial<Pick<StudyTask, "title" | "minutes" | "subject" | "done">>,
+  patch: Partial<Pick<StudyTask, "title" | "minutes" | "subject" | "done" | "date">>,
 ) {
   const { error } = await supabase.from("study_tasks").update(patch).eq("id", id);
   if (error) throw new Error(error.message);

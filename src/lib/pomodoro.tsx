@@ -24,6 +24,8 @@ export interface PomoState {
   focusMin: number;
   breakMin: number;
   cycles: number; // focus blocks finished in this run
+  /** Set while paused: ms left in the current phase (endsAt is ignored until resumed). */
+  pausedLeft?: number;
 }
 
 /** What each studying person shares in the live room. */
@@ -34,6 +36,7 @@ export interface RoomMember {
   subject: string;
   phase: Phase;
   endsAt: number;
+  paused?: boolean;
 }
 
 const ROOM = "study-room";
@@ -48,6 +51,8 @@ interface Ctx {
   start: (subject: string, focusMin: number, breakMin: number) => void;
   stop: () => void;
   skipBreak: () => void;
+  pause: () => void;
+  resume: () => void;
 }
 
 const PomodoroContext = createContext<Ctx | null>(null);
@@ -127,7 +132,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   }, [state?.running]);
 
   useEffect(() => {
-    if (!state?.running || now < state.endsAt) return;
+    if (!state?.running || state.pausedLeft !== undefined || now < state.endsAt) return;
     if (now - state.endsAt > 2 * 60 * 60_000) {
       // Timer from a long-closed tab: don't log stale time
       save(null);
@@ -179,13 +184,14 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         subject: state.subject,
         phase: state.phase,
         endsAt: state.endsAt,
+        ...(state.pausedLeft !== undefined ? { paused: true } : {}),
       };
       // retry once in case the channel was still joining
       void ch.track(me).catch(() => setTimeout(() => void ch.track(me), 1500));
     } else {
       void ch.untrack().catch(() => {});
     }
-  }, [state?.running, state?.phase, state?.subject, state?.endsAt, profile]);
+  }, [state?.running, state?.phase, state?.subject, state?.endsAt, state?.pausedLeft, profile]);
 
   const start = (subject: string, focusMin: number, breakMin: number) => {
     setLastMessage(null);
@@ -204,12 +210,37 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     if (!state) return;
     save({ ...state, running: true, phase: "focus", endsAt: Date.now() + state.focusMin * 60_000 });
   };
+  /** Freeze the clock; the time left is kept (also across reloads) until resume. */
+  const pause = () => {
+    if (!state?.running || state.pausedLeft !== undefined) return;
+    save({ ...state, pausedLeft: Math.max(0, state.endsAt - Date.now()) });
+  };
+  const resume = () => {
+    if (!state || state.pausedLeft === undefined) return;
+    const { pausedLeft, ...rest } = state;
+    save({ ...rest, endsAt: Date.now() + pausedLeft });
+  };
 
-  const remaining = state?.running ? Math.max(0, Math.ceil((state.endsAt - now) / 1000)) : 0;
+  const remaining = !state?.running
+    ? 0
+    : state.pausedLeft !== undefined
+      ? Math.ceil(state.pausedLeft / 1000)
+      : Math.max(0, Math.ceil((state.endsAt - now) / 1000));
 
   return (
     <PomodoroContext.Provider
-      value={{ state, remaining, quote, lastMessage, members, start, stop, skipBreak }}
+      value={{
+        state,
+        remaining,
+        quote,
+        lastMessage,
+        members,
+        start,
+        stop,
+        skipBreak,
+        pause,
+        resume,
+      }}
     >
       {children}
     </PomodoroContext.Provider>

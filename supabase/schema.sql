@@ -117,7 +117,12 @@ create table if not exists study_tasks (
   title          text    not null,
   minutes        int     not null default 30,
   done           boolean not null default false,
-  created_at     bigint  not null default (extract(epoch from now()) * 1000)::bigint
+  created_at     bigint  not null default (extract(epoch from now()) * 1000)::bigint,
+  -- أهداف: درس جديد / مراجعة / هدف حر، لليوم أو للأسبوع (date = السبت أول الأسبوع)
+  kind           text    not null default 'custom' check (kind in ('study', 'review', 'custom')),
+  scope          text    not null default 'day' check (scope in ('day', 'week')),
+  unit           text,
+  lesson         text
 );
 
 -- نتائج الاختبارات الشاملة والمراجعة الشاملة كل أسبوعين
