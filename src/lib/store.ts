@@ -571,16 +571,20 @@ export async function logSession(
   subjectId: string,
   minutes: number,
   note?: string,
+  /** Fixed id/date so a retried save is not counted twice. */
+  opts?: { id?: string; date?: string },
 ) {
-  const date = dateKey();
+  const date = opts?.date ?? dateKey();
   const { error } = await supabase.from("study_sessions").insert({
-    id: uid(),
+    id: opts?.id ?? uid(),
     owner_username: ownerUsername,
     subject_id: subjectId,
     minutes,
     date,
     note: note ?? null,
   });
+  // 23505 = this id is already saved (an earlier try went through): nothing more to do
+  if (error?.code === "23505") return;
   if (error) throw new Error(error.message);
 
   // Auto-increment chapter progress every 25+ minutes

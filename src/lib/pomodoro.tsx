@@ -11,7 +11,7 @@ import {
 } from "react";
 import confetti from "canvas-confetti";
 import { supabase } from "./supabase";
-import { logSession, useCurrentProfile, useDB } from "./store";
+import { dateKey, logSession, uid, useCurrentProfile, useDB } from "./store";
 import { STUDY_QUOTES, randomFrom } from "./motivation";
 
 export type Phase = "focus" | "break";
@@ -41,6 +41,43 @@ export interface RoomMember {
 
 const ROOM = "study-room";
 const storageKey = (u: string) => `mozakara_pomodoro_${u}`;
+const pendingKey = (u: string) => `mozakara_pomodoro_pending_${u}`;
+
+/** A finished focus block not yet saved to the database. */
+interface PendingSession {
+  id: string;
+  subject: string;
+  minutes: number;
+  date: string;
+}
+
+function readPending(u: string): PendingSession[] {
+  try {
+    return JSON.parse(localStorage.getItem(pendingKey(u)) ?? "[]") as PendingSession[];
+  } catch {
+    return [];
+  }
+}
+
+function writePending(u: string, list: PendingSession[]) {
+  try {
+    if (list.length) localStorage.setItem(pendingKey(u), JSON.stringify(list));
+    else localStorage.removeItem(pendingKey(u));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function queueSession(u: string, p: PendingSession) {
+  writePending(u, [...readPending(u), p]);
+}
+
+function removePending(u: string, id: string) {
+  writePending(
+    u,
+    readPending(u).filter((p) => p.id !== id),
+  );
+}
 
 interface Ctx {
   state: PomoState | null;
@@ -95,6 +132,47 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const dbRef = useRef(db);
   dbRef.current = db;
+  const flushing = useRef(false);
+
+  /** Save finished focus blocks that are still waiting (e.g. the phone was offline). */
+  const flushPending = useCallback(async () => {
+    if (!username || flushing.current) return;
+    const subjects = dbRef.current.subjects;
+    if (!dbRef.current.loaded) return;
+    flushing.current = true;
+    try {
+      for (const p of readPending(username)) {
+        const subj = subjects.find((s) => s.ownerUsername === username && s.name === p.subject);
+        try {
+          if (subj) {
+            await logSession(username, subj.id, p.minutes, "بومودورو", { id: p.id, date: p.date });
+          }
+          removePending(username, p.id); // saved (or its subject was deleted)
+        } catch {
+          break; // still offline: try again later
+        }
+      }
+    } finally {
+      flushing.current = false;
+    }
+  }, [username]);
+
+  // Retry waiting saves on load, when the connection comes back, when the tab is shown again,
+  // and every 30 seconds.
+  useEffect(() => {
+    if (!username || !db.loaded) return;
+    void flushPending();
+    const retry = () => void flushPending();
+    const onVisible = () => document.visibilityState === "visible" && retry();
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", onVisible);
+    const t = setInterval(retry, 30_000);
+    return () => {
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(t);
+    };
+  }, [username, db.loaded, flushPending]);
 
   // Restore a running timer after reload
   useEffect(() => {
@@ -140,10 +218,13 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     }
     if (state.phase === "focus") {
       // Focus block finished: log it and start the break
-      const subj = dbRef.current.subjects.find(
-        (s) => s.ownerUsername === username && s.name === state.subject,
-      );
-      if (subj) void logSession(username, subj.id, state.focusMin, "بومودورو").catch(() => {});
+      queueSession(username, {
+        id: uid(),
+        subject: state.subject,
+        minutes: state.focusMin,
+        date: dateKey(),
+      });
+      void flushPending();
       confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
       setLastMessage(
         `أحسنت! أنهيت ${state.focusMin} دقيقة تركيز في ${state.subject} وحصلت على نجوم جديدة ⭐ خذ استراحة.`,
@@ -158,7 +239,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       setLastMessage("انتهت الاستراحة — جاهز لجلسة جديدة؟ 🍅");
       save({ ...state, running: false, phase: "focus" });
     }
-  }, [now, state, username, save]);
+  }, [now, state, username, save, flushPending]);
 
   // Live room presence
   useEffect(() => {
